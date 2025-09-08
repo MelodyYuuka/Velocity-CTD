@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.queue.cache;
 
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
@@ -24,6 +25,7 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The redis implementation of the queue cache.
@@ -72,8 +74,11 @@ public class RedisRetriever implements QueueCacheRetriever {
     if (status == null) {
       status = new ServerQueueStatus(server, proxy);
 
-      // Make the queue if it doesn't exist.
-      redisManager.addOrUpdateQueue(status);
+      // Make the queue if it doesn't exist - async to prevent blocking
+      final ServerQueueStatus finalStatus = status;
+      CompletableFuture.runAsync(() -> {
+        redisManager.addOrUpdateQueue(finalStatus);
+      });
     }
 
     return status;
@@ -99,13 +104,29 @@ public class RedisRetriever implements QueueCacheRetriever {
   public List<ServerQueueStatus> getAll() {
     List<SerializableQueue> ser = redisManager.getAllQueues();
     List<ServerQueueStatus> queue = new ArrayList<>();
-    ser.forEach(s -> {
-      VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
-
-      if (server != null) {
-        queue.add(s.convert(proxy, server));
+    
+    // If Redis returns empty list, create queues for all registered servers
+    if (ser.isEmpty()) {
+      for (RegisteredServer registeredServer : proxy.getAllServers()) {
+        VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
+        ServerQueueStatus status = new ServerQueueStatus(server, proxy);
+        queue.add(status);
+        
+        // Async update to Redis
+        final ServerQueueStatus finalStatus = status;
+        CompletableFuture.runAsync(() -> {
+          redisManager.addOrUpdateQueue(finalStatus);
+        });
       }
-    });
+    } else {
+      ser.forEach(s -> {
+        VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
+
+        if (server != null) {
+          queue.add(s.convert(proxy, server));
+        }
+      });
+    }
 
     return queue;
   }

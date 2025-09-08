@@ -72,9 +72,17 @@ announce-forge = false
 # If true, disables handling of inbound Forge handshakes.
 disable-forge = false
 
-# If enabled (default is false), and the proxy is in online mode, Velocity will kick
-# any existing player who is online if a duplicate connection attempt is made.
+# If enabled (default is false), Velocity will kick any existing player who is online 
+# if a duplicate connection attempt is made. When kick-existing-players-check-ip is disabled,
+# this feature only works in online mode. When kick-existing-players-check-ip is enabled,
+# this feature works in both online and offline mode.
 kick-existing-players = false
+
+# If enabled (default is false), when kick-existing-players is enabled, Velocity will also
+# check for duplicate connections from the same IP address in addition to username and UUID checks.
+# This provides additional protection against connection loss scenarios and enables 
+# kick-existing-players to work in offline mode.
+kick-existing-players-check-ip = false
 
 # Should Velocity pass server list ping requests to a backend server?
 # Available options:
@@ -148,6 +156,10 @@ lobby = "127.0.0.1:30066"
 factions = "127.0.0.1:30067"
 minigames = "127.0.0.1:30068"
 
+# You can also specify a minimum-version for individual servers to override the global setting:
+# legacy = { address = "127.0.0.1:30069", minimum-version = "1.7.2" }
+# modern = { address = "127.0.0.1:30070", minimum-version = "1.20" }
+
 # If you need a different forwarding mode, specify as shown:
 #
 # To remove this line, either remove the line or comment it out.
@@ -193,6 +205,15 @@ server-aliases = [
 hub = [
     "lobby",
     "return"
+]
+
+[proxy-command-aliases]
+# Proxy command aliases create new commands that execute other commands when invoked.
+# This is similar to Bukkit's commands.yml functionality.
+#
+# Adding multiple aliases executes multiple commands.
+help = [
+    "velocity help"
 ]
 
 [advanced]
@@ -391,6 +412,12 @@ use-ssl = false
 # We encourage leaving this at "50," as having an absurd number
 # of connections to your Redis instance will massively depreciate performance.
 max-concurrent-connections = 50
+
+# Connection timeout in seconds for Redis operations
+connection-timeout = 5
+
+# Read timeout in seconds for Redis operations
+read-timeout = 3
 
 # The ID of this proxy and is only needed for multi-proxy setups.
 # Leave blank if you do not use Redis and is left blank by

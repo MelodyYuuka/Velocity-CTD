@@ -141,6 +141,13 @@ public final class VelocityConfiguration implements ProxyConfig {
   private boolean onlineModeKickExistingPlayers = false;
 
   /**
+   * If {@code true}, when kick-existing-players is enabled, also check for duplicate connections
+   * from the same IP address in addition to username and UUID checks.
+   */
+  @Expose
+  private boolean kickExistingPlayersCheckIp = false;
+
+  /**
    * Defines how ping data (e.g. MOTD, players, mods) is forwarded to clients.
    */
   @Expose
@@ -173,6 +180,13 @@ public final class VelocityConfiguration implements ProxyConfig {
    */
   @Expose
   private final CommandAliases commandAliases;
+
+  /**
+   * Maps proxy command aliases to their underlying command executions.
+   * These are new commands that execute other commands when invoked.
+   */
+  @Expose
+  private final ProxyCommandAliases proxyCommandAliases;
 
   /**
    * Advanced configuration options for performance and features.
@@ -299,12 +313,15 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private Map<String, Integer> playerCaps;
 
-  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
-                                final Commands commands, final Advanced advanced, final Query query, final Metrics metrics, final Redis redis,
-                                final Queue queue) {
+  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, 
+                                final CommandAliases commandAliases,
+                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, 
+                                final Advanced advanced, final Query query, final Metrics metrics, 
+                                final Redis redis, final Queue queue) {
     this.servers = servers;
     this.forcedHosts = forcedHosts;
     this.commandAliases = commandAliases;
+    this.proxyCommandAliases = proxyCommandAliases;
     this.commands = commands;
     this.advanced = advanced;
     this.query = query;
@@ -317,11 +334,12 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 final int showMaxPlayers, final boolean onlineMode,
                                 final boolean preventClientProxyConnections, final boolean announceForge,
                                 final PlayerInfoForwarding playerInfoForwardingMode, final byte[] forwardingSecret,
-                                final boolean onlineModeKickExistingPlayers, final PingPassthroughMode pingPassthrough,
+                                final boolean onlineModeKickExistingPlayers, final boolean kickExistingPlayersCheckIp,
+                                final PingPassthroughMode pingPassthrough,
                                 final boolean samplePlayersInPing, final boolean enablePlayerAddressLogging,
                                 final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
-                                final Commands commands, final Advanced advanced, final Query query,
-                                final Metrics metrics, final boolean forceKeyAuthentication,
+                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, final Advanced advanced,
+                                final Query query, final Metrics metrics, final boolean forceKeyAuthentication,
                                 final boolean logPlayerConnections, final boolean logPlayerDisconnections,
                                 final boolean logOfflineConnections, final boolean disableForge,
                                 final boolean enforceChatSigning, final boolean translateHeaderFooter,
@@ -339,12 +357,14 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.playerInfoForwardingMode = playerInfoForwardingMode;
     this.forwardingSecret = forwardingSecret;
     this.onlineModeKickExistingPlayers = onlineModeKickExistingPlayers;
+    this.kickExistingPlayersCheckIp = kickExistingPlayersCheckIp;
     this.pingPassthrough = pingPassthrough;
     this.samplePlayersInPing = samplePlayersInPing;
     this.enablePlayerAddressLogging = enablePlayerAddressLogging;
     this.servers = servers;
     this.forcedHosts = forcedHosts;
     this.commandAliases = commandAliases;
+    this.proxyCommandAliases = proxyCommandAliases;
     this.commands = commands;
     this.advanced = advanced;
     this.query = query;
@@ -653,6 +673,18 @@ public final class VelocityConfiguration implements ProxyConfig {
    */
   public Map<String, List<String>> getCommandAliases() {
     return commandAliases.getAliases();
+  }
+
+  /**
+   * Returns the map of proxy command aliases configured in the proxy.
+   *
+   * <p>These aliases create new commands that execute other commands when invoked.
+   * Similar to Bukkit's commands.yml functionality.
+   *
+   * @return a map of command names to their associated command executions
+   */
+  public Map<String, List<String>> getProxyCommandAliases() {
+    return proxyCommandAliases.getAliases();
   }
 
   @Override
@@ -1166,6 +1198,18 @@ public final class VelocityConfiguration implements ProxyConfig {
       Files.writeString(defaultForwardingSecretPath, generateRandomString(12));
     }
 
+    try {
+      ConfigDetector detector = new ConfigDetector(logger);
+      ConfigDetector.ConfigAnalysis analysis = detector.analyzeConfiguration(path);
+
+      if (!analysis.missingOptions().isEmpty()) {
+        logger.warn("Missing configuration options: " + String.join(", ", analysis.missingOptions()));
+        logger.warn("Run /velocity configcheck for full details");
+      }
+    } catch (IOException e) {
+      logger.debug("Could not perform configuration check during configuration loading", e);
+    }
+
     try (CommentedFileConfig config = CommentedFileConfig.builder(path)
             .defaultData(defaultConfigLocation)
             .autosave()
@@ -1215,6 +1259,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final CommentedConfig serversConfig = config.get("servers");
       final CommentedConfig forcedHostsConfig = config.get("forced-hosts");
       final CommentedConfig commandAliasesConfig = config.get("command-aliases");
+      final CommentedConfig proxyCommandAliasesConfig = config.get("proxy-command-aliases");
       final CommentedConfig commandsConfig = config.get("commands");
       final CommentedConfig advancedConfig = config.get("advanced");
       final CommentedConfig queryConfig = config.get("query");
@@ -1237,6 +1282,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean preventClientProxyConnections = config.getOrElse(
               "prevent-client-proxy-connections", false);
       final boolean kickExisting = config.getOrElse("kick-existing-players", false);
+      final boolean kickExistingCheckIp = config.getOrElse("kick-existing-players-check-ip", false);
       final boolean enablePlayerAddressLogging = config.getOrElse(
               "enable-player-address-logging", true);
       final boolean logPlayerConnections = config.getOrElse(
@@ -1339,12 +1385,14 @@ public final class VelocityConfiguration implements ProxyConfig {
           forwardingMode,
           forwardingSecret,
           kickExisting,
+          kickExistingCheckIp,
           pingPassthroughMode,
           samplePlayersInPing,
           enablePlayerAddressLogging,
           new Servers(serversConfig),
           new ForcedHosts(forcedHostsConfig),
           new CommandAliases(commandAliasesConfig),
+          new ProxyCommandAliases(proxyCommandAliasesConfig),
           new Commands(commandsConfig),
           new Advanced(advancedConfig),
           new Query(queryConfig),
@@ -1396,6 +1444,19 @@ public final class VelocityConfiguration implements ProxyConfig {
    */
   public boolean isOnlineModeKickExistingPlayers() {
     return onlineModeKickExistingPlayers;
+  }
+
+  /**
+   * Determines whether Velocity should also check for duplicate connections from the same IP address
+   * when kick-existing-players is enabled.
+   *
+   * <p>This provides additional protection against connection loss scenarios where a player
+   * might reconnect from the same IP address with a different username or UUID.
+   *
+   * @return true if IP address checking should be performed for duplicate connections
+   */
+  public boolean isKickExistingPlayersCheckIp() {
+    return kickExistingPlayersCheckIp;
   }
 
   /**
@@ -1483,6 +1544,19 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
+   * Gets the minimum allowed Minecraft version for a specific server.
+   *
+   * <p>If the server has a specific minimum version configured, that value is returned.
+   * Otherwise, the global minimum version is returned.
+   *
+   * @param serverName the name of the server to check
+   * @return the minimum supported version string for the server (e.g., {@code "1.7.2"})
+   */
+  public String getMinimumVersionForServer(final String serverName) {
+    return servers.getServerMinimumVersions().getOrDefault(serverName, minimumVersion);
+  }
+
+  /**
    * Gets a list of aliases that invoke the {@code /server} command or its variations.
    *
    * <p>These aliases are registered for convenience (e.g. {@code /queue}, {@code /joinqueue}).
@@ -1525,6 +1599,14 @@ public final class VelocityConfiguration implements ProxyConfig {
     private Map<String, PlayerInfoForwarding> serverForwardingModes = ImmutableMap.of();
 
     /**
+     * Per-server overrides for minimum version requirements.
+     *
+     * <p>If a server is listed here, it uses the specified minimum version
+     * instead of the global configuration.
+     */
+    private Map<String, String> serverMinimumVersions = ImmutableMap.of();
+
+    /**
      * The strategy used for choosing a fallback server when {@code attemptConnectionOrder}
      * fails or is bypassed (e.g., in multi-proxy setups).
      *
@@ -1546,9 +1628,13 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
 
     private Servers(final CommentedConfig config) {
+      this.serverAliases = List.of("joinqueue", "queue", "server");
+      this.dynamicFallbackFilter = "FIRST_AVAILABLE";
+      
       if (config != null) {
         Map<String, String> servers = new HashMap<>();
         Map<String, PlayerInfoForwarding> serverForwardingModes = new HashMap<>();
+        Map<String, String> serverMinimumVersions = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
           if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")) {
             continue;
@@ -1570,6 +1656,11 @@ public final class VelocityConfiguration implements ProxyConfig {
               serverForwardingModes.put(name, mode);
             }
 
+            String minimumVersion = unmodifiableConfig.get("minimum-version");
+            if (minimumVersion != null) {
+              serverMinimumVersions.put(name, minimumVersion);
+            }
+
             servers.put(cleanServerName(name), address);
           } else {
             if (!entry.getKey().equalsIgnoreCase("try")
@@ -1583,6 +1674,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
         this.servers = ImmutableMap.copyOf(servers);
         this.serverForwardingModes = ImmutableMap.copyOf(serverForwardingModes);
+        this.serverMinimumVersions = ImmutableMap.copyOf(serverMinimumVersions);
         this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder).stream().toList();
         this.dynamicFallbackFilter = config.getOrElse("dynamic-fallbacks-filter", "FIRST_AVAILABLE");
         this.serverAliases = config.getOrElse("server-aliases", List.of("joinqueue", "queue", "server"));
@@ -1593,10 +1685,13 @@ public final class VelocityConfiguration implements ProxyConfig {
                     final Map<String, PlayerInfoForwarding> serverForwardingModes) {
       this.servers = servers;
       this.attemptConnectionOrder = attemptConnectionOrder;
+      this.serverForwardingModes = serverForwardingModes;
+      this.serverAliases = List.of("joinqueue", "queue", "server");
+      this.dynamicFallbackFilter = "FIRST_AVAILABLE";
     }
 
     public List<String> getServerAliases() {
-      return serverAliases;
+      return serverAliases != null ? serverAliases : List.of("joinqueue", "queue", "server");
     }
 
     private Map<String, String> getServers() {
@@ -1628,6 +1723,14 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.serverForwardingModes = serverForwardingModes;
     }
 
+    public Map<String, String> getServerMinimumVersions() {
+      return serverMinimumVersions;
+    }
+
+    public void setServerMinimumVersions(final Map<String, String> serverMinimumVersions) {
+      this.serverMinimumVersions = serverMinimumVersions;
+    }
+
     /**
      * TOML requires keys to match a regex of {@code [A-Za-z0-9_-]} unless it is wrapped in quotes;
      * however, the TOML parser returns the key with the quotes so we need to clean the server name
@@ -1646,6 +1749,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + "servers=" + servers
           + ", attemptConnectionOrder=" + attemptConnectionOrder
           + ", serverForwardingModes=" + serverForwardingModes
+          + ", serverMinimumVersions=" + serverMinimumVersions
           + '}';
     }
   }
@@ -1686,7 +1790,51 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     @Override
     public String toString() {
-      return "CommandAliases{" + "aliases=" + aliases + '}';
+      return "CommandAliases{"
+          + "aliases=" + aliases
+          + '}';
+    }
+  }
+
+  private static final class ProxyCommandAliases {
+
+    /**
+     * A map of proxy command aliases defined in the configuration.
+     *
+     * <p>Each key is a new command name (e.g., "help"), and the value is a list of
+     * commands to execute when this command is invoked (e.g., ["velocity info"]).</p>
+     *
+     * <p>This allows creating new commands that execute other commands, similar to Bukkit's commands.yml.</p>
+     */
+    private final Map<String, List<String>> aliases;
+
+    private ProxyCommandAliases(final CommentedConfig config) {
+      Map<String, List<String>> parsed = new HashMap<>();
+      if (config != null) {
+        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+          Object value = entry.getValue();
+          if (value instanceof List<?> list) {
+            parsed.put(entry.getKey(), list.stream().map(Object::toString).toList());
+          } else if (value instanceof String str) {
+            parsed.put(entry.getKey(), List.of(str));
+          } else {
+            logger.warn("Invalid value in [proxy-command-aliases] for '{}': {}", entry.getKey(), value);
+          }
+        }
+      }
+
+      this.aliases = ImmutableMap.copyOf(parsed);
+    }
+
+    public Map<String, List<String>> getAliases() {
+      return aliases;
+    }
+
+    @Override
+    public String toString() {
+      return "ProxyCommandAliases{"
+          + "aliases=" + aliases
+          + '}';
     }
   }
 
@@ -2460,6 +2608,18 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private @Nullable String proxyId;
 
+    /**
+     * Connection timeout in seconds for Redis operations.
+     */
+    @Expose
+    private int connectionTimeout;
+
+    /**
+     * Read timeout in seconds for Redis operations.
+     */
+    @Expose
+    private int readTimeout;
+
     private Redis(final CommentedConfig config) {
       if (config == null) {
         return;
@@ -2482,6 +2642,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (this.proxyId == null || this.proxyId.isEmpty()) {
         this.proxyId = null;
       }
+
+      this.connectionTimeout = config.getIntOrElse("connection-timeout", 5);
+      this.readTimeout = config.getIntOrElse("read-timeout", 3);
     }
 
     /**
@@ -2557,6 +2720,24 @@ public final class VelocityConfiguration implements ProxyConfig {
       return proxyId;
     }
 
+    /**
+     * Gets the connection timeout in seconds for Redis operations.
+     *
+     * @return the connection timeout in seconds
+     */
+    public int getConnectionTimeout() {
+      return connectionTimeout;
+    }
+
+    /**
+     * Gets the read timeout in seconds for Redis operations.
+     *
+     * @return the read timeout in seconds
+     */
+    public int getReadTimeout() {
+      return readTimeout;
+    }
+
     @Override
     public String toString() {
       return "Redis{"
@@ -2565,8 +2746,10 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", port=" + port
           + ", username=" + username
           // password excluded for security
-          + ", useSsl" + useSsl
-          + ", maxConcurrentConnections" + maxConcurrentConnections
+          + ", useSsl=" + useSsl
+          + ", maxConcurrentConnections=" + maxConcurrentConnections
+          + ", connectionTimeout=" + connectionTimeout
+          + ", readTimeout=" + readTimeout
           + '}';
     }
   }
