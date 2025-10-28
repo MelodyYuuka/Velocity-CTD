@@ -83,8 +83,7 @@ public class ServerDataPacket implements MinecraftPacket {
    * @param protocolVersion the Minecraft protocol version
    */
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                           final ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4) || buf.readBoolean()) {
       this.description = ComponentHolder.read(buf, protocolVersion);
     }
@@ -122,8 +121,7 @@ public class ServerDataPacket implements MinecraftPacket {
    * @param protocolVersion the Minecraft protocol version
    */
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                           final ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     boolean hasDescription = this.description != null;
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
       buf.writeBoolean(hasDescription);
@@ -202,5 +200,26 @@ public class ServerDataPacket implements MinecraftPacket {
    */
   public void setSecureChatEnforced(final boolean secureChatEnforced) {
     this.secureChatEnforced = secureChatEnforced;
+  }
+
+  /**
+   * Provides an estimated number of bytes required to encode this server data packet.
+   *
+   * <p>This estimate is intentionally conservative to account for variations in the size of
+   * the description text component, the Base64-encoded favicon image, and optional flags such
+   * as secure chat enforcement. Because favicon data alone can approach several kilobytes and
+   * text components may vary with localization or formatting, a fixed allocation of
+   * {@code 8 KiB} (8192 bytes) is used as a safe upper bound.</p>
+   *
+   * <p>This value helps the encoder preallocate sufficient buffer space to avoid dynamic
+   * reallocation during encoding, ensuring efficient I/O operations.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the estimated encoded size in bytes (always {@code 8192})
+   */
+  @Override
+  public int encodeSizeHint(final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+    return 8 * 1024;
   }
 }

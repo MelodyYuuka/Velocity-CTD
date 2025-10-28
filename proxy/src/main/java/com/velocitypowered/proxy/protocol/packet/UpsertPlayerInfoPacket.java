@@ -40,6 +40,11 @@ import org.jetbrains.annotations.Nullable;
 public class UpsertPlayerInfoPacket implements MinecraftPacket {
 
   /**
+   * Cached array of all actions used for bitmask packing and unpacking.
+   */
+  private static final Action[] ALL_ACTIONS = Action.class.getEnumConstants();
+
+  /**
    * The set of actions to apply to player info entries.
    */
   private final EnumSet<Action> actions;
@@ -153,16 +158,14 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
    * @param protocolVersion the protocol version used during decoding
    */
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
-    Action[] actions = Action.class.getEnumConstants();
-    byte[] bytes = new byte[-Math.floorDiv(-actions.length, 8)];
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+    byte[] bytes = new byte[-Math.floorDiv(-ALL_ACTIONS.length, 8)];
     buf.readBytes(bytes);
     BitSet actionSet = BitSet.valueOf(bytes);
 
-    for (int idx = 0; idx < actions.length; idx++) {
+    for (int idx = 0; idx < ALL_ACTIONS.length; idx++) {
       if (actionSet.get(idx)) {
-        addAction(actions[idx]);
+        addAction(ALL_ACTIONS[idx]);
       }
     }
 
@@ -188,16 +191,14 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
    * @param protocolVersion the protocol version used during encoding
    */
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
-    Action[] actions = Action.class.getEnumConstants();
-    BitSet set = new BitSet(actions.length);
-    for (int idx = 0; idx < actions.length; idx++) {
-      set.set(idx, this.actions.contains(actions[idx]));
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+    BitSet set = new BitSet(ALL_ACTIONS.length);
+    for (int idx = 0; idx < ALL_ACTIONS.length; idx++) {
+      set.set(idx, this.actions.contains(ALL_ACTIONS[idx]));
     }
 
     byte[] bytes = set.toByteArray();
-    buf.writeBytes(Arrays.copyOf(bytes, -Math.floorDiv(-actions.length, 8)));
+    buf.writeBytes(Arrays.copyOf(bytes, -Math.floorDiv(-ALL_ACTIONS.length, 8)));
 
     ProtocolUtils.writeVarInt(buf, this.entries.size());
     for (Entry entry : this.entries) {
@@ -223,19 +224,6 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
   }
 
   /**
-   * Reads a fixed bit set from the buffer.
-   *
-   * @param buf the buffer to read from
-   * @param param0 the size of the bit set
-   * @return the bit set read from the buffer
-   */
-  public BitSet readFixedBitSet(final ByteBuf buf, final int param0) {
-    byte[] var0 = new byte[-Math.floorDiv(-param0, 8)];
-    buf.readBytes(var0);
-    return BitSet.valueOf(var0);
-  }
-
-  /**
    * Represents the possible actions in the player info packet.
    */
   public enum Action {
@@ -244,13 +232,11 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
      * Adds a player to the tab list. This action includes the full {@link GameProfile},
      * including the player's UUID, name, and properties.
      */
-    ADD_PLAYER((ignored, buf, info) -> {
-      info.profile = new GameProfile(
-          info.profileId,
-          ProtocolUtils.readString(buf, 16),
-          ProtocolUtils.readProperties(buf)
-      );
-    }, (ignored, buf, info) -> {
+    ADD_PLAYER((ignored, buf, info) -> info.profile = new GameProfile(
+        info.profileId,
+        ProtocolUtils.readString(buf, 16),
+        ProtocolUtils.readProperties(buf)
+    ), (ignored, buf, info) -> {
       ProtocolUtils.writeString(buf, info.profile.getName());
       ProtocolUtils.writeProperties(buf, info.profile.getProperties());
     }),

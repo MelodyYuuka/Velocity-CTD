@@ -70,6 +70,8 @@ public enum ProtocolUtils {
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
           .options(
               OptionSchema.globalSchema().stateBuilder()
+              // general options
+              .value(JSONOptions.EMIT_CLICK_URL_HTTPS, Boolean.TRUE)
               // before 1.16
               .value(JSONOptions.EMIT_RGB, Boolean.FALSE)
               .value(JSONOptions.EMIT_HOVER_EVENT_TYPE, JSONOptions.HoverEventValueMode.VALUE_FIELD)
@@ -96,6 +98,8 @@ public enum ProtocolUtils {
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
           .options(
               OptionSchema.globalSchema().stateBuilder()
+              // general options
+              .value(JSONOptions.EMIT_CLICK_URL_HTTPS, Boolean.TRUE)
               // after 1.16
               .value(JSONOptions.EMIT_RGB, Boolean.TRUE)
               .value(JSONOptions.EMIT_HOVER_EVENT_TYPE, JSONOptions.HoverEventValueMode.CAMEL_CASE)
@@ -123,6 +127,8 @@ public enum ProtocolUtils {
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
           .options(
               OptionSchema.globalSchema().stateBuilder()
+              // general options
+              .value(JSONOptions.EMIT_CLICK_URL_HTTPS, Boolean.TRUE)
               // after 1.16
               .value(JSONOptions.EMIT_RGB, Boolean.TRUE)
               .value(JSONOptions.EMIT_HOVER_EVENT_TYPE, JSONOptions.HoverEventValueMode.CAMEL_CASE)
@@ -150,6 +156,8 @@ public enum ProtocolUtils {
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
           .options(
               OptionSchema.globalSchema().stateBuilder()
+              // general options
+              .value(JSONOptions.EMIT_CLICK_URL_HTTPS, Boolean.TRUE)
               // after 1.16
               .value(JSONOptions.EMIT_RGB, Boolean.TRUE)
               .value(JSONOptions.EMIT_HOVER_EVENT_TYPE, JSONOptions.HoverEventValueMode.SNAKE_CASE)
@@ -206,7 +214,7 @@ public enum ProtocolUtils {
    * <p>This is used to determine how many bytes are needed to encode
    * a given integer as a Minecraft VarInt.</p>
    */
-  private static final int[] VAR_INT_LENGTHS = new int[65];
+  private static final int[] VAR_INT_LENGTHS = new int[33];
 
   static {
     for (int i = 0; i <= 32; ++i) {
@@ -308,16 +316,15 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Writes the specified {@code value} as a 21-bit Minecraft VarInt to the specified {@code buf}.
+   * Directly encodes a 21-bit Minecraft VarInt, ready to be written with {@link ByteBuf#writeMedium(int)}.
    * The upper 11 bits will be discarded.
    *
-   * @param buf   the buffer to read from
-   * @param value the integer to write
+   * @param value the value to encode
+   * @return the encoded value
    */
-  public static void write21BitVarInt(final ByteBuf buf, final int value) {
+  public static int encode21BitVarInt(final int value) {
     // See https://steinborn.me/posts/performance/how-fast-can-you-write-a-varint/
-    int w = (value & 0x7F | 0x80) << 16 | ((value >>> 7) & 0x7F | 0x80) << 8 | (value >>> 14);
-    buf.writeMedium(w);
+    return (value & 0x7F | 0x80) << 16 | ((value >>> 7) & 0x7F | 0x80) << 8 | (value >>> 14);
   }
 
   /**
@@ -358,6 +365,17 @@ public enum ProtocolUtils {
     String str = buf.readString(length, StandardCharsets.UTF_8);
     checkFrame(str.length() <= cap, "Got a too-long string (got %s, max %s)", str.length(), cap);
     return str;
+  }
+
+  /**
+   * Determines the size of the written {@code str} if encoded as a VarInt-prefixed UTF-8 string.
+   *
+   * @param str the string to write
+   * @return the encoded size
+   */
+  public static int stringSizeHint(final CharSequence str) {
+    int size = ByteBufUtil.utf8Bytes(str);
+    return varIntBytes(size) + size;
   }
 
   /**
