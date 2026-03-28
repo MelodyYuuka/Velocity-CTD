@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -523,6 +523,10 @@ public class VelocityCommandManager implements CommandManager {
    */
   public CommandGraphInjector<CommandSource> getInjector() {
     return injector;
+  }
+
+  public CommandDispatcher<CommandSource> getDispatcher() {
+    return dispatcher;
   }
 
   private Executor getAsyncExecutor(final ParseResults<CommandSource> parse) {

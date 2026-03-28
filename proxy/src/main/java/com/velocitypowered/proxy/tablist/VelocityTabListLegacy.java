@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,11 @@
 package com.velocitypowered.proxy.tablist;
 
 import com.google.common.collect.ImmutableList;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabListEntry;
 import com.velocitypowered.api.util.GameProfile;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket.Item;
@@ -54,7 +54,7 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
    * @param player the connected player this tab list is for
    * @param proxyServer the proxy server instance
    */
-  public VelocityTabListLegacy(final ConnectedPlayer player, final ProxyServer proxyServer) {
+  public VelocityTabListLegacy(final ConnectedPlayer player, final VelocityServer proxyServer) {
     super(player, proxyServer);
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,9 @@ import com.velocitypowered.api.event.query.ProxyQueryEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginDescription;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.QueryResponse;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -132,23 +132,15 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
   }
 
   private QueryResponse createInitialResponse() {
-
-    final int online;
-    if (server.getMultiProxyHandler().isRedisEnabled()) {
-      online = server.getMultiProxyHandler().getTotalPlayerCount();
-    } else {
-      online = server.getPlayerCount();
-    }
-
     return QueryResponse.builder()
         .hostname(PlainTextComponentSerializer.plainText().serialize(server.getConfiguration().getMotd()))
         .gameVersion(ProtocolVersion.SUPPORTED_VERSION_STRING)
         .map(server.getConfiguration().getQueryMap())
-        .currentPlayers(online)
+        .currentPlayers(server.getPlayerCount())
         .maxPlayers(server.getConfiguration().getShowMaxPlayers())
         .proxyPort(server.getConfiguration().getBind().getPort())
         .proxyHost(server.getConfiguration().getBind().getHostString())
-        .players(server.getAllPlayers().stream().map(Player::getUsername).collect(Collectors.toList()))
+        .players(server.getAllPlayers().stream().map(ConnectedPlayer::getUsername).collect(Collectors.toList()))
         .proxyVersion("Velocity")
         .plugins(server.getConfiguration().shouldQueryShowPlugins() ? getRealPluginInformation() : Collections.emptyList())
         .build();

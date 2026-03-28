@@ -25,10 +25,11 @@ tasks {
     }
 
     shadowJar {
-        transform(Log4j2PluginsCacheFileTransformer::class.java)
         filesMatching("META-INF/org/apache/logging/log4j/core/config/plugins/**") {
             duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
+
+        transform(Log4j2PluginsCacheFileTransformer::class.java)
 
         // Exclude all the collection types we don't intend to use
         exclude("it/unimi/dsi/fastutil/booleans/**")
@@ -92,12 +93,25 @@ tasks {
         // Exclude Checker Framework annotations
         exclude("org/checkerframework/checker/**")
 
+        // Exclude original Guice HiddenClassDefiner to use patched version without sun.misc.Unsafe
+        exclude("com/google/inject/internal/aop/HiddenClassDefiner.class")
+
         relocate("org.bstats", "com.velocitypowered.proxy.bstats")
 
         // Include Configurate 3
         val configurateBuildTask = project(":deprecated-configurate3").tasks.named("shadowJar")
         dependsOn(configurateBuildTask)
         from(zipTree(configurateBuildTask.map { it.outputs.files.singleFile }))
+
+        // Embed :velocity-luckperms-integration as META-INF/velocityctd/integrations/velocity-luckperms-integration.jar
+        val lpJar = project(":velocity-luckperms-integration")
+            .tasks
+            .named<Jar>("jar")
+        dependsOn(lpJar)
+        from(lpJar.flatMap { it.archiveFile }) {
+            into("META-INF/velocityctd/integrations")
+            rename { "velocity-luckperms-integration.jar" }
+        }
     }
 
     runShadow {

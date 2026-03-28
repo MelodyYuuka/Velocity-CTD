@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,6 +101,28 @@ public class KeepAlivePacket implements MinecraftPacket {
       ProtocolUtils.writeVarInt(buf, (int) randomId);
     } else {
       buf.writeInt((int) randomId);
+    }
+  }
+
+  @Override
+  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
+      return Long.BYTES;
+    } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
+      return 5;
+    } else {
+      return Integer.BYTES;
+    }
+  }
+
+  @Override
+  public int decodeExpectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
+      return Long.BYTES;
+    } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
+      return 1;
+    } else {
+      return Integer.BYTES;
     }
   }
 

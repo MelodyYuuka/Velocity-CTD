@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -110,10 +110,10 @@ public final class Metrics {
     /**
      * Logger used for bStats-related output during initialization.
      */
-    private static final Logger logger = LogManager.getLogger(Metrics.class);
+    private static final Logger LOGGER = LogManager.getLogger(Metrics.class);
 
     static void startMetrics(final VelocityServer server, final VelocityConfiguration.Metrics metricsConfig) {
-      Metrics metrics = new Metrics(logger, 4752, metricsConfig.isEnabled());
+      Metrics metrics = new Metrics(LOGGER, 4752, metricsConfig.isEnabled());
 
       metrics.addCustomChart(
           new SingleLineChart("players", server::getPlayerCount)

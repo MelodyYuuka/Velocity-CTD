@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
   /**
    * The logger instance for logging events related to {@link InitialConnectSessionHandler}.
    */
-  private static final Logger logger = LogManager.getLogger(InitialConnectSessionHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(InitialConnectSessionHandler.class);
 
   /**
    * The player associated with this session.
@@ -98,7 +98,7 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
             }
           }, player.getConnection().eventLoop())
           .exceptionally((ex) -> {
-            logger.error("Exception while handling plugin message {}", packet, ex);
+            LOGGER.error("Exception while handling plugin message {}", packet, ex);
             return null;
           });
     }

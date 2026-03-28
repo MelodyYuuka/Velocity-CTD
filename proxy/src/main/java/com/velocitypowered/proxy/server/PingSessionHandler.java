@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ package com.velocitypowered.proxy.server;
 
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -47,7 +46,7 @@ public class PingSessionHandler implements MinecraftSessionHandler {
   /**
    * The target server being pinged.
    */
-  private final RegisteredServer server;
+  private final VelocityRegisteredServer server;
 
   /**
    * The underlying Minecraft protocol connection to the server.
@@ -70,7 +69,7 @@ public class PingSessionHandler implements MinecraftSessionHandler {
    */
   private final String virtualHostString;
 
-  PingSessionHandler(final CompletableFuture<ServerPing> result, final RegisteredServer server,
+  PingSessionHandler(final CompletableFuture<ServerPing> result, final VelocityRegisteredServer server,
                      final MinecraftConnection connection, final ProtocolVersion version, final String virtualHostString) {
     this.result = result;
     this.server = server;

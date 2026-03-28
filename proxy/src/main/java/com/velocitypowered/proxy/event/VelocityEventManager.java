@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 import org.lanternpowered.lmbda.LambdaFactory;
 import org.lanternpowered.lmbda.LambdaType;
 
@@ -88,35 +89,35 @@ public class VelocityEventManager implements EventManager {
   /**
    * Logger instance for logging event handler diagnostics and errors.
    */
-  private static final Logger logger = LogManager.getLogger(VelocityEventManager.class);
+  private static final Logger LOGGER = LogManager.getLogger(VelocityEventManager.class);
 
   /**
    * Lookup instance for unreflecting handler methods.
    */
-  private static final MethodHandles.Lookup methodHandlesLookup = MethodHandles.lookup();
+  private static final MethodHandles.Lookup METHOD_HANDLES_LOOKUP = MethodHandles.lookup();
 
   /**
    * LambdaType used to create implementations of {@link EventTaskHandler}.
    */
-  private static final LambdaType<EventTaskHandler> untargetedEventTaskHandlerType =
+  private static final LambdaType<EventTaskHandler> UNTARGETED_EVENT_TASK_HANDLER_TYPE =
       LambdaType.of(EventTaskHandler.class);
 
   /**
    * LambdaType used to create implementations of {@link VoidHandler}.
    */
-  private static final LambdaType<VoidHandler> untargetedVoidHandlerType =
+  private static final LambdaType<VoidHandler> UNTARGETED_VOID_HANDLER_TYPE =
       LambdaType.of(VoidHandler.class);
 
   /**
    * LambdaType used to create implementations of {@link WithContinuationHandler}.
    */
-  private static final LambdaType<WithContinuationHandler> untargetedWithContinuationHandlerType =
+  private static final LambdaType<WithContinuationHandler> UNTARGETED_WITH_CONTINUATION_HANDLER_TYPE =
       LambdaType.of(WithContinuationHandler.class);
 
   /**
    * Comparator used to sort handlers by descending order (higher priority runs first).
    */
-  private static final Comparator<HandlerRegistration> handlerComparator =
+  private static final Comparator<HandlerRegistration> HANDLER_COMPARATOR =
       Collections.reverseOrder(Comparator.comparingInt(o -> o.order));
 
   /**
@@ -133,13 +134,13 @@ public class VelocityEventManager implements EventManager {
   /**
    * Cache of baked event handler arrays per event type, used for dispatch.
    */
-  private final LoadingCache<Class<?>, HandlersCache> handlersCache =
+  private final LoadingCache<@NotNull Class<?>, HandlersCache> handlersCache =
       Caffeine.newBuilder().build(this::bakeHandlers);
 
   /**
    * Cache of method-to-untargeted-handler adapters, used for lambda dispatch generation.
    */
-  private final LoadingCache<Method, UntargetedEventHandler> untargetedMethodHandlers =
+  private final LoadingCache<@NotNull Method, UntargetedEventHandler> untargetedMethodHandlers =
       Caffeine.newBuilder().weakValues().build(this::buildUntargetedMethodHandler);
 
   /**
@@ -167,14 +168,22 @@ public class VelocityEventManager implements EventManager {
   }
 
   /**
-   * Registers a new continuation adapter function.
+   * Registers a new continuation adapter function for custom event handler method signatures.
+   *
+   * @param name the name of the adapter, used for identification and error messages
+   * @param filter a predicate that determines if a method matches this adapter's signature
+   * @param validator a consumer that validates the method and collects error messages into the provided list
+   * @param invokeFunctionType the type token representing the functional interface used to invoke the handler
+   * @param handlerBuilder a function that converts the invoke function into a BiFunction that executes
+   *                       the handler, taking the listener instance and event as parameters and returning an EventTask
+   * @param <F> the type of the functional interface used to invoke the handler method
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
   public <F> void registerHandlerAdapter(final String name, final Predicate<Method> filter,
                                          final BiConsumer<Method, List<String>> validator,
-                                         final TypeToken<F> invokeFunctionType,
+                                         final TypeToken<@NotNull F> invokeFunctionType,
                                          final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder) {
-    handlerAdapters.add(new CustomHandlerAdapter(name, filter, validator, invokeFunctionType, handlerBuilder, methodHandlesLookup));
+    handlerAdapters.add(new CustomHandlerAdapter(name, filter, validator, invokeFunctionType, handlerBuilder, METHOD_HANDLES_LOOKUP));
   }
 
   /**
@@ -278,7 +287,7 @@ public class VelocityEventManager implements EventManager {
       return null;
     }
 
-    baked.sort(handlerComparator);
+    baked.sort(HANDLER_COMPARATOR);
 
     AsyncType asyncType = AsyncType.NEVER;
     for (HandlerRegistration registration : baked) {
@@ -307,15 +316,15 @@ public class VelocityEventManager implements EventManager {
     }
 
     final MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(
-        method.getDeclaringClass(), methodHandlesLookup);
+        method.getDeclaringClass(), METHOD_HANDLES_LOOKUP);
     final MethodHandle methodHandle = lookup.unreflect(method);
     final LambdaType<? extends UntargetedEventHandler> type;
     if (EventTask.class.isAssignableFrom(method.getReturnType())) {
-      type = untargetedEventTaskHandlerType;
+      type = UNTARGETED_EVENT_TASK_HANDLER_TYPE;
     } else if (method.getParameterCount() == 2) {
-      type = untargetedWithContinuationHandlerType;
+      type = UNTARGETED_WITH_CONTINUATION_HANDLER_TYPE;
     } else {
-      type = untargetedVoidHandlerType;
+      type = UNTARGETED_VOID_HANDLER_TYPE;
     }
 
     return LambdaFactory.create(type.defineClassesWith(lookup), methodHandle);
@@ -572,7 +581,7 @@ public class VelocityEventManager implements EventManager {
     final List<HandlerRegistration> registrations = new ArrayList<>();
     for (final MethodHandlerInfo info : collected.values()) {
       if (info.errors != null) {
-        logger.info("Invalid listener method {} in {}: {}",
+        LOGGER.info("Invalid listener method {} in {}: {}",
             info.method.getName(), info.method.getDeclaringClass().getName(), info.errors);
         continue;
       }
@@ -927,7 +936,7 @@ public class VelocityEventManager implements EventManager {
 
   private static void logHandlerException(final HandlerRegistration registration, final Throwable t) {
     final PluginDescription pluginDescription = registration.plugin.getDescription();
-    logger.error("Couldn't pass {} to {} {}", registration.eventType.getSimpleName(),
+    LOGGER.error("Couldn't pass {} to {} {}", registration.eventType.getSimpleName(),
         pluginDescription.getId(), pluginDescription.getVersion().orElse(""), t);
   }
 }

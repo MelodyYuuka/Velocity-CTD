@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,11 +60,13 @@ import org.apache.logging.log4j.Logger;
  * Handles the client config stage.
  */
 public class ClientConfigSessionHandler implements MinecraftSessionHandler {
+  private static final boolean BACKPRESSURE_LOG =
+      Boolean.getBoolean("velocity.log-server-backpressure");
 
   /**
    * Logger for internal debug and error messages.
    */
-  private static final Logger logger = LogManager.getLogger(ClientConfigSessionHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(ClientConfigSessionHandler.class);
 
   /**
    * The Velocity server instance.
@@ -230,7 +232,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
             serverConn.getPlayer().getConnection().setAutoReading(true);
           }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-            logger.error("Exception while handling plugin message packet for {}", player, ex);
+            LOGGER.error("Exception while handling plugin message packet for {}", player, ex);
             return null;
           });
     }
@@ -273,7 +275,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
         targetServer.ensureConnected().write(packet);
       }
     }).exceptionally(ex -> {
-      logger.error("Error forwarding known packs response to backend:", ex);
+      LOGGER.error("Error forwarding known packs response to backend:", ex);
       return null;
     });
 
@@ -412,6 +414,33 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
   }
 
+  @Override
+  public void writabilityChanged() {
+    final boolean writable = player.getConnection().getChannel().isWritable();
+
+    if (BACKPRESSURE_LOG) {
+      if (writable) {
+        LOGGER.info("{} is writable, will auto-read backend connection data", player);
+      } else {
+        LOGGER.info("{} is not writable, not auto-reading backend connection data", player);
+      }
+    }
+
+    if (!writable) {
+      // Flush pending packets to free up memory. Schedule on a future event loop invocation
+      // to avoid disabling auto-read while the flush resolves backpressure.
+      player.getConnection().eventLoop().execute(() -> player.getConnection().flush());
+    }
+
+    final VelocityServerConnection serverConn = player.getConnectionInFlightOrConnectedServer();
+    if (serverConn != null) {
+      final MinecraftConnection smc = serverConn.getConnection();
+      if (smc != null) {
+        smc.setAutoReading(writable);
+      }
+    }
+  }
+
   /**
    * Calls the {@link PlayerConfigurationEvent}.
    * For 1.20.5+ backends, this is done when the client responds to
@@ -459,7 +488,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
           player.getConnection().getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.PLAY);
           server.getEventManager().fireAndForget(new PlayerFinishedConfigurationEvent(player, serverConn));
         }, player.getConnection().eventLoop()).exceptionally(ex -> {
-          logger.error("Error finishing configuration state:", ex);
+          LOGGER.error("Error finishing configuration state:", ex);
           return null;
         });
 

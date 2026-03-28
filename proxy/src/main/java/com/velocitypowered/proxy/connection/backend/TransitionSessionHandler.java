@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,10 @@ package com.velocitypowered.proxy.connection.backend;
 import static com.velocitypowered.proxy.connection.backend.BackendConnectionPhases.IN_TRANSITION;
 import static com.velocitypowered.proxy.connection.forge.legacy.LegacyForgeHandshakeBackendPhase.HELLO;
 
+import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.event.player.ServerPostConnectEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -38,7 +38,7 @@ import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
-import com.velocitypowered.proxy.queue.ServerQueueStatus;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,7 +51,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
   /**
    * Logger instance for reporting session handler events and errors.
    */
-  private static final Logger logger = LogManager.getLogger(TransitionSessionHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(TransitionSessionHandler.class);
 
   /**
    * The main Velocity server instance.
@@ -134,7 +134,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
   @Override
   public boolean handle(final JoinGamePacket packet) {
     final MinecraftConnection smc = serverConn.ensureConnected();
-    final RegisteredServer previousServer = serverConn.getPreviousServer().orElse(null);
+    final VelocityRegisteredServer previousServer = serverConn.getPreviousServer().orElse(null);
     final ConnectedPlayer player = serverConn.getPlayer();
     final VelocityServerConnection existingConnection = player.getConnectedServer();
 
@@ -191,22 +191,22 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             serverConn.ensureConnected().write(player.getClientSettingsPacket());
           }
 
-          if (server.getMultiProxyHandler().isRedisEnabled()) {
-            server.getMultiProxyHandler().handleServerSwitch(player,
+          if (server.isRedisEnabled()) {
+            server.getRedis().getPlayerService().onPlayerSwitchServer(player,
                 serverConn.getServerInfo().getName());
           }
 
-          if (this.server.getQueueManager().isQueueEnabled()) {
-            ServerQueueStatus status = this.server.getQueueManager().getQueue(serverConn.getServer()
-                .getServerInfo().getName());
-            status.dequeue(player.getUniqueId(), false);
+          if (this.server.isQueueEnabled()) {
+            final VelocityQueue queue = this.server.getQueueManager().getQueue(serverConn.getServer()
+                    .getServerInfo().getName());
+            queue.dequeue(player.getUniqueId());
           }
 
           // We're done! :)
           server.getEventManager().fireAndForget(new ServerPostConnectEvent(player, previousServer));
           resultFuture.complete(ConnectionRequestResults.successful(serverConn.getServer()));
         }, smc.eventLoop()).exceptionally(exc -> {
-          logger.error("Unable to switch to new server {} for {}",
+          LOGGER.error("Unable to switch to new server {} for {}",
               serverConn.getServerInfo().getName(),
               player.getUsername(), exc);
           player.disconnect(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
@@ -281,11 +281,15 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
   /**
    * Called when the backend connection is closed unexpectedly during the transition phase.
    *
-   * <p>This shuts down the player session and performs cleanup.</p>
+   * <p>Completes the result future with a {@link com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status#SERVER_DISCONNECTED}
+   * result so the connection attempt fails cleanly without throwing an exception. This leaves the
+   * player tracked by the proxy and allows fallback handling (e.g. try-next) to proceed normally.
+   * If the future is already complete (e.g. a {@link DisconnectPacket} was already handled),
+   * this call is a no-op.</p>
    */
   @Override
   public void disconnected() {
-    final ConnectedPlayer player = serverConn.getPlayer();
-    player.teardown();
+    resultFuture.complete(ConnectionRequestResults.forDisconnect(
+        ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR, serverConn.getServer()));
   }
 }

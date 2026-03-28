@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,8 @@ package com.velocitypowered.proxy.connection.util;
 
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import net.kyori.adventure.text.Component;
@@ -40,7 +40,7 @@ public final class ConnectionRequestResults {
    * @param server the server the connection was made to
    * @return a result indicating the connection succeeded
    */
-  public static Impl successful(final RegisteredServer server) {
+  public static Impl successful(final VelocityRegisteredServer server) {
     return plainResult(Status.SUCCESS, server);
   }
 
@@ -52,7 +52,7 @@ public final class ConnectionRequestResults {
    * @return the result
    */
   public static Impl plainResult(final ConnectionRequestBuilder.Status status,
-                                 final RegisteredServer server) {
+                                 final VelocityRegisteredServer server) {
     return new Impl(status, null, server, true);
   }
 
@@ -63,7 +63,7 @@ public final class ConnectionRequestResults {
    * @param server    the server to use
    * @return the result
    */
-  public static Impl forDisconnect(final Component component, final RegisteredServer server) {
+  public static Impl forDisconnect(final Component component, final VelocityRegisteredServer server) {
     return new Impl(Status.SERVER_DISCONNECTED, component, server, true);
   }
 
@@ -74,7 +74,7 @@ public final class ConnectionRequestResults {
    * @param server     the server the player attempted to connect to
    * @return the result
    */
-  public static Impl forDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
+  public static Impl forDisconnect(final DisconnectPacket disconnect, final VelocityRegisteredServer server) {
     return forDisconnect(disconnect.getReason().getComponent(), server);
   }
 
@@ -88,7 +88,7 @@ public final class ConnectionRequestResults {
    * @param server     the server the player attempted to connect to
    * @return the result marked as unsafe
    */
-  public static Impl forUnsafeDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
+  public static Impl forUnsafeDisconnect(final DisconnectPacket disconnect, final VelocityRegisteredServer server) {
     return new Impl(Status.SERVER_DISCONNECTED, disconnect.getReason().getComponent(), server, false);
   }
 
@@ -118,7 +118,7 @@ public final class ConnectionRequestResults {
      *
      * <p>This is the server Velocity tried to connect the player to when the result was generated.</p>
      */
-    private final RegisteredServer attemptedConnection;
+    private final VelocityRegisteredServer attemptedConnection;
 
     /**
      * Indicates whether it is safe to attempt reconnecting to another server after this result.
@@ -129,7 +129,7 @@ public final class ConnectionRequestResults {
     private final boolean safe;
 
     Impl(final Status status, final @Nullable Component component,
-         final RegisteredServer attemptedConnection, final boolean safe) {
+         final VelocityRegisteredServer attemptedConnection, final boolean safe) {
       this.status = status;
       this.component = component;
       this.attemptedConnection = attemptedConnection;
@@ -162,7 +162,7 @@ public final class ConnectionRequestResults {
      * @return the target backend server
      */
     @Override
-    public RegisteredServer getAttemptedConnection() {
+    public VelocityRegisteredServer getAttemptedConnection() {
       return attemptedConnection;
     }
 

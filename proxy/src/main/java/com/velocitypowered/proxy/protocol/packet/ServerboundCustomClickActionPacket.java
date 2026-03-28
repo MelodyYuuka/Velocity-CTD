@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@ import io.netty.buffer.ByteBuf;
  * interpretation by the proxy.</p>
  */
 public class ServerboundCustomClickActionPacket extends DeferredByteBufHolder implements MinecraftPacket {
+
+  private static final int MAX_TAG_SIZE = 65536;
 
   /**
    * Creates a new {@link ServerboundCustomClickActionPacket} with no initial content.
@@ -65,6 +67,16 @@ public class ServerboundCustomClickActionPacket extends DeferredByteBufHolder im
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     buf.writeBytes(content());
+  }
+
+  @Override
+  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    return ProtocolUtils.DEFAULT_MAX_STRING_BYTES + ProtocolUtils.varIntBytes(MAX_TAG_SIZE) + MAX_TAG_SIZE;
+  }
+
+  @Override
+  public int decodeExpectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    return 1 + 0 + 1 + 0;
   }
 
   /**

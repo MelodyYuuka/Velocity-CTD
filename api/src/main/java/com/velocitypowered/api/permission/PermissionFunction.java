@@ -1,11 +1,13 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
  */
 
 package com.velocitypowered.api.permission;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Function that calculates the permission settings for a given {@link PermissionSubject}.
@@ -34,5 +36,6 @@ public interface PermissionFunction {
    * @param permission the permission
    * @return the value the permission is set to
    */
+  @NonNull
   Tristate getPermissionValue(String permission);
 }

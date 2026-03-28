@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ public class CommandMessages {
    * <p>Translation key: {@code velocity.command.players-only}</p>
    */
   public static final TranslatableComponent PLAYERS_ONLY = Component.translatable(
-      "velocity.command.players-only", NamedTextColor.RED);
+          "velocity.command.players-only", NamedTextColor.RED);
 
   /**
    * Indicates that the specified server could not be found.
@@ -40,15 +40,7 @@ public class CommandMessages {
    * <p>Translation key: {@code velocity.command.server-does-not-exist}</p>
    */
   public static final TranslatableComponent SERVER_DOES_NOT_EXIST = Component.translatable(
-      "velocity.command.server-does-not-exist", NamedTextColor.RED);
-
-  /**
-   * Indicates that multiple servers matched the specified input.
-   *
-   * <p>Translation key: {@code velocity.command.server-multiple-matches}</p>
-   */
-  public static final TranslatableComponent SERVER_MULTIPLE_MATCH = Component.translatable(
-      "velocity.command.server-multiple-matches", NamedTextColor.RED);
+          "velocity.command.server-does-not-exist", NamedTextColor.RED);
 
   /**
    * Indicates that the specified player could not be found online.
@@ -56,5 +48,5 @@ public class CommandMessages {
    * <p>Translation key: {@code velocity.command.player-not-found}</p>
    */
   public static final TranslatableComponent PLAYER_NOT_FOUND = Component.translatable(
-      "velocity.command.player-not-found", NamedTextColor.RED);
+          "velocity.command.player-not-found", NamedTextColor.RED);
 }

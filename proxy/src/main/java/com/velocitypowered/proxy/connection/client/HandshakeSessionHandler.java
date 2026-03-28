@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,6 +80,11 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
   private final String minimumVersion;
 
   /**
+   * The configured maximum version string used to validate connecting clients.
+   */
+  private final String maximumVersion;
+
+  /**
    * Constructs a new {@link HandshakeSessionHandler} for managing the initial phase of a client
    * connection to the proxy. It validates the client connection and performs actions based on
    * protocol requirements.
@@ -93,6 +98,8 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.server = Preconditions.checkNotNull(server, "server");
     this.minimumVersion = server.getConfiguration().getMinimumVersion();
+    this.maximumVersion = server.getConfiguration().getMaximumVersion()
+        .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
   }
 
   /**
@@ -199,7 +206,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       ic.disconnectQuietly(Component.translatable("velocity.error.modern-forwarding-needs-new-client")
           .arguments(
               Argument.string("min", minimumVersion),
-              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+              Argument.string("max", maximumVersion)));
       return;
     }
 

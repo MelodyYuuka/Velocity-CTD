@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -115,6 +115,10 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
     MinecraftPacket packet = this.registry.createPacket(packetId);
     if (packet == null) {
       buf.readerIndex(originalReaderIndex);
+      if (this.direction == ProtocolUtils.Direction.SERVERBOUND && this.state != StateRegistry.PLAY) {
+        buf.release();
+        throw this.handleInvalidPacketId(packetId);
+      }
       ctx.fireChannelRead(buf);
     } else {
       try {
@@ -171,6 +175,14 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
     if (DEBUG) {
       return new CorruptedFrameException(
           "Error decoding " + packet.getClass() + " " + getExtraConnectionDetail(packetId), cause);
+    } else {
+      return DECODE_FAILED;
+    }
+  }
+
+  private Exception handleInvalidPacketId(int packetId) {
+    if (DEBUG) {
+      return new CorruptedFrameException("Invalid packet " + getExtraConnectionDetail(packetId));
     } else {
       return DECODE_FAILED;
     }

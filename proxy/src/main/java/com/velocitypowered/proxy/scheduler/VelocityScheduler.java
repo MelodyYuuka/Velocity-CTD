@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.scheduler.ScheduledTask;
@@ -41,7 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -67,9 +65,9 @@ public class VelocityScheduler implements Scheduler {
   private final PluginManager pluginManager;
 
   /**
-   * A single-threaded executor used to manage scheduling delays and repeats.
+   * The scheduler backend that's used to manage scheduling delays and repeats.
    */
-  private final ScheduledExecutorService timerExecutionService;
+  private final SchedulerBackend backend;
 
   /**
    * A multimap of plugin instances to their active scheduled tasks.
@@ -83,9 +81,13 @@ public class VelocityScheduler implements Scheduler {
    * @param pluginManager the Velocity plugin manager
    */
   public VelocityScheduler(final PluginManager pluginManager) {
+    this(pluginManager, new ExecutorSchedulerBackend());
+  }
+
+  @VisibleForTesting
+  VelocityScheduler(PluginManager pluginManager, SchedulerBackend backend) {
     this.pluginManager = pluginManager;
-    this.timerExecutionService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true)
-            .setNameFormat("Velocity Task Scheduler Timer").build());
+    this.backend = backend;
   }
 
   /**
@@ -160,7 +162,7 @@ public class VelocityScheduler implements Scheduler {
       task.cancel();
     }
 
-    timerExecutionService.shutdown();
+    backend.shutdown();
     final List<PluginContainer> plugins = new ArrayList<>(this.pluginManager.getPlugins());
     final Iterator<PluginContainer> pluginIterator = plugins.iterator();
     while (pluginIterator.hasNext()) {
@@ -184,13 +186,13 @@ public class VelocityScheduler implements Scheduler {
       try {
         if (!service.awaitTermination(10, TimeUnit.SECONDS)) {
           service.shutdownNow();
-          Log.logger.warn("Executor for plugin {} did not shut down within 10 seconds. "
+          Log.LOGGER.warn("Executor for plugin {} did not shut down within 10 seconds. "
               + "Continuing with shutdown...", id);
           allShutdown = false;
         }
 
       } catch (final InterruptedException e) {
-        Log.logger.warn("Executor for plugin {} did not shut down within 10 seconds. "
+        Log.LOGGER.warn("Executor for plugin {} did not shut down within 10 seconds. "
             + "Continuing with shutdown...", id);
       }
     }
@@ -324,9 +326,9 @@ public class VelocityScheduler implements Scheduler {
 
     void schedule() {
       if (repeat == 0) {
-        this.future = timerExecutionService.schedule(this, delay, TimeUnit.MILLISECONDS);
+        this.future = backend.schedule(this, delay, TimeUnit.MILLISECONDS);
       } else {
-        this.future = timerExecutionService.scheduleAtFixedRate(this, delay, repeat, TimeUnit.MILLISECONDS);
+        this.future = backend.scheduleAtFixedRate(this, delay, repeat, TimeUnit.MILLISECONDS);
       }
     }
 
@@ -385,7 +387,7 @@ public class VelocityScheduler implements Scheduler {
             String friendlyPluginName = container.getDescription().getName()
                 .orElse(container.getDescription().getId());
             Object unit = consumer == null ? runnable : consumer;
-            Log.logger.error("Exception in task {} by plugin {}", unit, friendlyPluginName,
+            Log.LOGGER.error("Exception in task {} by plugin {}", unit, friendlyPluginName,
                 e);
           }
         } finally {
@@ -417,6 +419,6 @@ public class VelocityScheduler implements Scheduler {
     /**
      * The Log4j logger instance used for reporting task-related exceptions and shutdown warnings.
      */
-    private static final Logger logger = LogManager.getLogger(VelocityTask.class);
+    private static final Logger LOGGER = LogManager.getLogger(VelocityTask.class);
   }
 }

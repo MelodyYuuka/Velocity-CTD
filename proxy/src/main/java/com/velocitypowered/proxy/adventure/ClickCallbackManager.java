@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,13 +38,15 @@ public final class ClickCallbackManager {
    */
   public static final ClickCallbackManager INSTANCE = new ClickCallbackManager();
 
+  public static final String COMMAND_LABEL = "velocity:callback";
+
   /**
    * The base command string used to route click callbacks.
    *
    * <p>This prefix is prepended to callback IDs when embedding them in client-bound
    * clickable components.</p>
    */
-  static final String COMMAND = "/velocity:callback ";
+  static final String COMMAND = "/" + COMMAND_LABEL + " ";
 
   /**
    * Cache of registered callbacks, keyed by their unique UUIDs.

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
 
 package com.velocitypowered.proxy.tablist;
 
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.player.TabList;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket;
 import com.velocitypowered.proxy.protocol.packet.RemovePlayerInfoPacket;
 import com.velocitypowered.proxy.protocol.packet.UpsertPlayerInfoPacket;
@@ -29,11 +29,11 @@ import com.velocitypowered.proxy.protocol.packet.UpsertPlayerInfoPacket;
 public interface InternalTabList extends TabList {
 
   /**
-   * Returns the {@link Player} associated with this tab list.
+   * Returns the {@link ConnectedPlayer} associated with this tab list.
    *
    * @return the player whose tab list is being modified
    */
-  Player getPlayer();
+  ConnectedPlayer getPlayer();
 
   /**
    * Processes a legacy player list update packet.

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,15 +19,11 @@ package com.velocitypowered.proxy.command;
 
 import com.google.common.base.Preconditions;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.CommandContextBuilder;
 import com.mojang.brigadier.context.ParsedArgument;
 import com.mojang.brigadier.context.ParsedCommandNode;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -36,28 +32,11 @@ import com.velocitypowered.api.command.Command;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.InvocableCommand;
-import com.velocitypowered.api.permission.Tristate;
-import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
-import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.brigadier.VelocityArgumentCommandNode;
 import com.velocitypowered.proxy.command.brigadier.VelocityBrigadierCommandWrapper;
-import com.velocitypowered.proxy.command.builtin.CommandMessages;
-import com.velocitypowered.proxy.config.VelocityConfiguration;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
-import com.velocitypowered.proxy.server.VelocityRegisteredServer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -80,7 +59,7 @@ public final class VelocityCommands {
                                                 final @Nullable Object registrant) {
     Preconditions.checkNotNull(delegate, "delegate");
     if (registrant == null) {
-      // the registrant is null if the `plugin` was absent when we try to register the command
+      // The registrant is null if the `plugin` was absent when we try to register the command
       return delegate;
     }
 
@@ -93,7 +72,7 @@ public final class VelocityCommands {
       case LiteralCommandNode<CommandSource> lcn -> {
         var literalBuilder = shallowCopyAsBuilder(lcn, delegate.getName(), true);
         literalBuilder.executes(maybeCommand);
-        // we also need to wrap any children
+        // We also need to wrap any children
         for (final CommandNode<CommandSource> child : delegate.getChildren()) {
           literalBuilder.then(wrap(child, registrant));
         }
@@ -106,7 +85,7 @@ public final class VelocityCommands {
               .withRedirect(delegate.getRedirect() != null ? wrap(delegate.getRedirect(), registrant) : null);
       case ArgumentCommandNode<CommandSource, ?> node -> {
         var argBuilder = node.createBuilder().executes(maybeCommand);
-        // we also need to wrap any children
+        // We also need to wrap any children
         for (final CommandNode<CommandSource> child : delegate.getChildren()) {
           argBuilder.then(wrap(child, registrant));
         }
@@ -177,7 +156,7 @@ public final class VelocityCommands {
                                     final Class<V> type, final V fallback) {
     final ParsedArgument<?, ?> argument = arguments.get(ARGS_NODE_NAME);
     if (argument == null) {
-      return fallback; // either no arguments were given or this isn't an InvocableCommand
+      return fallback; // Either no arguments were given or this isn't an InvocableCommand
     }
     final Object result = argument.getResult();
     try {
@@ -187,8 +166,6 @@ public final class VelocityCommands {
           + ", expected " + type, e);
     }
   }
-
-  // Alias nodes
 
   /**
    * Returns whether a literal node with the given name can be added to the {@link RootCommandNode}
@@ -262,8 +239,6 @@ public final class VelocityCommands {
     return builder;
   }
 
-  // Arguments node
-
   /**
    * Returns the argument's node for the command represented by the given alias node, if present;
    * otherwise returns {@code null}.
@@ -293,202 +268,5 @@ public final class VelocityCommands {
 
   private VelocityCommands() {
     throw new AssertionError();
-  }
-
-  /**
-   * Gets a player from a command argument named {@code player}.
-   *
-   * @param server the proxy server
-   * @param ctx the command context
-   * @return the found player, or {@code null} if the player couldn't be found
-   */
-  public static Player getPlayer(final VelocityServer server, final CommandContext<CommandSource> ctx) {
-    String playerName = ctx.getArgument("player", String.class);
-    Optional<Player> playerOptional = server.getPlayer(playerName);
-
-    if (playerOptional.isEmpty()) {
-      ctx.getSource().sendMessage(CommandMessages.PLAYER_NOT_FOUND
-          .arguments(Argument.string("player", playerName)));
-      return null;
-    }
-
-    return playerOptional.get();
-  }
-
-  /**
-   * Generates a suggestion provider to complete the name of a server.
-   *
-   * @param server the proxy server
-   * @param argName the name of the string argument to complete
-   * @param allowNonQueueable whether to suggest a server if the server has queueing disabled
-   * @return a suggestion provider that completes a server name
-   */
-  public static SuggestionProvider<CommandSource> suggestServer(final VelocityServer server, final String argName,
-                                                                final boolean allowNonQueueable) {
-    return (ctx, builder) -> {
-      boolean allowNonQueueable0 = allowNonQueueable;
-      final String argument = ctx.getArguments().containsKey(argName)
-          ? StringArgumentType.getString(ctx, argName)
-          : "";
-
-      VelocityConfiguration.Queue queueConfig = server.getConfiguration().getQueue();
-
-      if (!queueConfig.isEnabled()) {
-        allowNonQueueable0 = true;
-      }
-
-      for (final RegisteredServer sv : server.getAllServers()) {
-        final String serverName = sv.getServerInfo().getName();
-        if (!allowNonQueueable0 && queueConfig.getNoQueueServers().contains(serverName)) {
-          continue;
-        }
-
-        if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-          if (ctx.getSource().getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE) {
-            builder.suggest(serverName);
-          }
-        }
-      }
-
-      return builder.buildFuture();
-    };
-  }
-
-  /**
-   * Fetches a server from a string in a command context.
-   *
-   * @param server the proxy instance
-   * @param ctx the command context
-   * @param argName the name of the argument
-   * @param allowNonQueueable whether to return a servers if it can't be queued.
-   * @return the found server, or {@code null} if one couldn't be found
-   */
-  public static VelocityRegisteredServer getServer(final VelocityServer server, final CommandContext<CommandSource> ctx,
-                                                   final String argName, final boolean allowNonQueueable) {
-    String serverName = ctx.getArgument(argName, String.class);
-    Optional<RegisteredServer> serverOptional = server.getServer(serverName);
-
-    if (serverOptional.isEmpty()) {
-      ctx.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Argument.string("server", serverName)));
-      return null;
-    }
-
-    VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) serverOptional.get();
-
-    if (!checkServerPermissions(registeredServer, ctx.getSource())) {
-      ctx.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Argument.string("server", serverName)));
-      return null;
-    }
-
-    if (!allowNonQueueable && !registeredServer.getQueueStatus().hasQueue()) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.server-has-no-queue")
-          .arguments(Argument.string("server", serverName)));
-      return null;
-    }
-
-    return registeredServer;
-  }
-
-  /**
-   * Checks if a command source has permission to join a server.
-   *
-   * @param server the server to check against
-   * @param source the command source to be checked
-   * @return whether the command source has permission to join
-   */
-  public static boolean checkServerPermissions(final RegisteredServer server, final CommandSource source) {
-    String serverName = server.getServerInfo().getName();
-    return source.getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE;
-  }
-
-  /**
-   * Emits usage text for the given command name to the source of the given command context.
-   *
-   * @param ctx the command context to send usage to
-   * @param commandName the command name
-   * @return {@code Command.SINGLE_SUCCESS} to allow using in expression-style {@code .executes} lambdas.
-   */
-  public static int emitUsage(final CommandContext<CommandSource> ctx, final String commandName) {
-    String usedName = commandName;
-    ParsedCommandNode<?> node = ctx.getNodes().getFirst();
-
-    if (node != null) {
-      usedName = node.getNode().getName();
-    }
-
-    ctx.getSource().sendMessage(
-        Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)
-            .arguments(Argument.string("command", usedName)));
-    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
-  }
-
-  /**
-   * Suggests the name of a connected proxy.
-   *
-   * @param server the proxy server instance
-   * @param context the context passed to the {@code suggests} callback
-   * @param builder the builder passed to the {@code builder} callback
-   * @return a future that resolves to the suggestions
-   */
-  public static CompletableFuture<Suggestions> suggestProxy(final VelocityServer server, final CommandContext<CommandSource> context,
-                                                            final SuggestionsBuilder builder) {
-    final String argument = context.getArguments().containsKey("proxy")
-        ? context.getArgument("proxy", String.class)
-        : "";
-    for (String proxyId : server.getMultiProxyHandler().getAllProxyIds()) {
-      if (proxyId.toLowerCase().regionMatches(true, 0, argument.toLowerCase(), 0, argument.length())) {
-        builder.suggest(proxyId);
-      }
-    }
-
-    return builder.buildFuture();
-  }
-
-  /**
-   * Suggests the name of an online player.
-   *
-   * @param server the proxy server instance
-   * @param ctx the context passed to the {@code suggests} callback
-   * @param builder the builder passed to the {@code builder} callback
-   * @param includeRemote whether to include remote (cross-proxy) players from Redis
-   * @return a future that resolves to the suggestions
-   */
-  public static CompletableFuture<Suggestions> suggestPlayer(final VelocityServer server, final CommandContext<CommandSource> ctx,
-                                                             final SuggestionsBuilder builder, final boolean includeRemote) {
-    final String argument = ctx.getArguments().containsKey("player")
-        ? ctx.getArgument("player", String.class)
-        : "";
-    if (includeRemote && server.getMultiProxyHandler().isRedisEnabled()) {
-      for (RemotePlayerInfo info : server.getMultiProxyHandler().getAllPlayers()) {
-        if (info.getName().regionMatches(true, 0, argument, 0, argument.length())) {
-          builder.suggest(info.getName());
-        }
-      }
-
-      return builder.buildFuture();
-    }
-
-    for (final Player player : server.getAllPlayers()) {
-      final String playerName = player.getUsername();
-      if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
-        builder.suggest(playerName);
-      }
-    }
-
-    return builder.buildFuture();
-  }
-
-  /**
-   * Returns the server list sorted by name.
-   *
-   * @param proxy the proxy server instance
-   * @return a list of all registered servers, sorted by name
-   */
-  public static List<RegisteredServer> sortedServerList(final ProxyServer proxy) {
-    List<RegisteredServer> servers = new ArrayList<>(proxy.getAllServers());
-    servers.sort(Comparator.comparing(RegisteredServer::getServerInfo));
-    return Collections.unmodifiableList(servers);
   }
 }

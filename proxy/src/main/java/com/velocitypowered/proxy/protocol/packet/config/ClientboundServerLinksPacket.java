@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import io.netty.buffer.ByteBuf;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -66,7 +65,7 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     int linksCount = ProtocolUtils.readVarInt(buf);
 
-    this.serverLinks = new ArrayList<>(linksCount);
+    this.serverLinks = ProtocolUtils.newList(linksCount);
     for (int i = 0; i < linksCount; i++) {
       serverLinks.add(ServerLink.read(buf, version));
     }

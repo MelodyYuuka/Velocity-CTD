@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ public class VelocityPluginManager implements PluginManager {
   /**
    * The logger for this class.
    */
-  private static final Logger logger = LogManager.getLogger(VelocityPluginManager.class);
+  private static final Logger LOGGER = LogManager.getLogger(VelocityPluginManager.class);
 
   /**
    * A map of all loaded plugins indexed by their plugin ID.
@@ -113,14 +113,14 @@ public class VelocityPluginManager implements PluginManager {
               candidate.getId(), candidate);
 
       if (maybeExistingCandidate != null) {
-        logger.error("Refusing to load plugin at path {} since we already "
+        LOGGER.error("Refusing to load plugin at path {} since we already "
                     + "loaded a plugin with the same ID {} from {}",
                 candidate.getSource().map(Objects::toString).orElse("<UNKNOWN>"),
                 candidate.getId(),
                 maybeExistingCandidate.getSource().map(Objects::toString).orElse("<UNKNOWN>"));
       }
     } catch (Throwable e) {
-      logger.error("Unable to load plugin {}", path, e);
+      LOGGER.error("Unable to load plugin {}", path, e);
     }
   }
 
@@ -155,7 +155,7 @@ public class VelocityPluginManager implements PluginManager {
         }
       }
     } else {
-      logger.warn("Plugin location {} is not a directory, continuing without loading plugins", directory);
+      LOGGER.warn("Plugin location {} is not a directory, continuing without loading plugins", directory);
     }
 
     if (foundCandidates.isEmpty()) {
@@ -174,7 +174,7 @@ public class VelocityPluginManager implements PluginManager {
       // Verify dependencies
       for (PluginDependency dependency : candidate.getDependencies()) {
         if (!dependency.isOptional() && !loadedCandidates.containsKey(dependency.getId())) {
-          logger.error("Can't load plugin {} due to missing dependency {}", candidate.getId(),
+          LOGGER.error("Can't load plugin {} due to missing dependency {}", candidate.getId(),
               dependency.getId());
           continue pluginLoad;
         }
@@ -186,7 +186,7 @@ public class VelocityPluginManager implements PluginManager {
         pluginContainers.put(container, loader.createModule(container));
         loadedCandidates.put(realPlugin.getId(), realPlugin);
       } catch (Throwable e) {
-        logger.error("Can't create module for plugin {}", candidate.getId(), e);
+        LOGGER.error("Can't create module for plugin {}", candidate.getId(), e);
       }
     }
 
@@ -213,11 +213,11 @@ public class VelocityPluginManager implements PluginManager {
       try {
         loader.createPlugin(container, plugin.getValue(), commonModule);
       } catch (Throwable e) {
-        logger.error("Can't create plugin {}", description.getId(), e);
+        LOGGER.error("Can't create plugin {}", description.getId(), e);
         continue;
       }
 
-      logger.info("Loaded plugin {} {} by {}", description.getId(), description.getVersion()
+      LOGGER.info("Loaded plugin {} {} by {}", description.getId(), description.getVersion()
           .orElse("<UNKNOWN>"), Joiner.on(", ").join(description.getAuthors()));
       registerPlugin(container);
     }

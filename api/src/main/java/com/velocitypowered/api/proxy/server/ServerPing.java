@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -54,6 +54,11 @@ public final class ServerPing {
   private final @Nullable ModInfo modinfo;
 
   /**
+   * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+   */
+  private final boolean preventsChatReports;
+  
+  /**
    * Constructs an initial ServerPing instance.
    *
    * @param version the version of the server
@@ -78,11 +83,28 @@ public final class ServerPing {
   public ServerPing(final Version version, final @Nullable Players players,
                     final Component description, final @Nullable Favicon favicon,
                     final @Nullable ModInfo modinfo) {
+    this(version, players, description, favicon, modinfo, false);
+  }
+
+  /**
+   * Constructs a ServerPing instance.
+   *
+   * @param version the version of the server
+   * @param players the players on the server, or {@code null} if not shown
+   * @param description the MOTD for the server
+   * @param favicon the server's favicon, or {@code null} if not set
+   * @param modinfo the mod info for the server, or {@code null} if not present
+   * @param preventsChatReports the mark of chat reports for the server
+   */
+  public ServerPing(final Version version, final @Nullable Players players,
+                    final Component description, final @Nullable Favicon favicon,
+                    final @Nullable ModInfo modinfo, final boolean preventsChatReports) {
     this.version = Preconditions.checkNotNull(version, "version");
     this.players = players;
     this.description = Preconditions.checkNotNull(description, "description");
     this.favicon = favicon;
     this.modinfo = modinfo;
+    this.preventsChatReports = preventsChatReports;
   }
 
   /**
@@ -131,6 +153,15 @@ public final class ServerPing {
     return Optional.ofNullable(modinfo);
   }
 
+  /**
+   * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+   *
+   * @return does prevents chat reports
+   */
+  public boolean getPreventsChatReports() {
+    return preventsChatReports;
+  }
+
   @Override
   public String toString() {
     return "ServerPing{"
@@ -139,6 +170,7 @@ public final class ServerPing {
         + ", description=" + description
         + ", favicon=" + favicon
         + ", modinfo=" + modinfo
+        + ", preventsChatReports=" + preventsChatReports
         + '}';
   }
 
@@ -157,12 +189,13 @@ public final class ServerPing {
         && Objects.equals(players, ping.players)
         && Objects.equals(description, ping.description)
         && Objects.equals(favicon, ping.favicon)
-        && Objects.equals(modinfo, ping.modinfo);
+        && Objects.equals(modinfo, ping.modinfo)
+        && Objects.equals(preventsChatReports, ping.preventsChatReports);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(version, players, description, favicon, modinfo);
+    return Objects.hash(version, players, description, favicon, modinfo, preventsChatReports);
   }
 
   /**
@@ -191,6 +224,8 @@ public final class ServerPing {
       builder.modType = modinfo.getType();
       builder.mods.addAll(modinfo.getMods());
     }
+
+    builder.preventsChatReports = preventsChatReports;
 
     return builder;
   }
@@ -258,6 +293,11 @@ public final class ServerPing {
      * Whether mod information should be omitted from the response.
      */
     private boolean nullOutModinfo;
+
+    /**
+     * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+     */
+    private boolean preventsChatReports;
 
     private Builder() {
     }
@@ -428,6 +468,17 @@ public final class ServerPing {
     }
 
     /**
+     * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+     *
+     * @param bool does prevents chat reports
+     * @return this builder, for chaining
+     */
+    public Builder preventsChatReports(boolean bool) {
+      this.preventsChatReports = bool;
+      return this;
+    }
+
+    /**
      * Uses the information from this builder to create a new {@link ServerPing} instance. The
      * builder can be re-used after this event has been called.
      *
@@ -444,7 +495,7 @@ public final class ServerPing {
 
       return new ServerPing(version,
           nullOutPlayers ? null : new Players(onlinePlayers, maximumPlayers, samplePlayers),
-          description, favicon, nullOutModinfo ? null : new ModInfo(modType, mods));
+          description, favicon, nullOutModinfo ? null : new ModInfo(modType, mods), preventsChatReports);
     }
 
     /**
@@ -519,6 +570,15 @@ public final class ServerPing {
       return mods;
     }
 
+    /**
+     * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+     *
+     * @return does prevents chat reports
+     */
+    public boolean getPreventsChatReports() {
+      return preventsChatReports;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -532,6 +592,7 @@ public final class ServerPing {
           .add("favicon", favicon)
           .add("nullOutPlayers", nullOutPlayers)
           .add("nullOutModinfo", nullOutModinfo)
+          .add("preventsChatReports", preventsChatReports)
           .toString();
     }
   }

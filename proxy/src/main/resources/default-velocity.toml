@@ -27,16 +27,23 @@ online-mode = true
 # Whether chat signing should be enforced. If disabled, backend servers MUST disable chat signing.
 enforce-chat-signing = true
 
+# Should tell client that proxy doesn't report chat messages? (useful for NoChatReports mod).
+prevents-chat-reports = false
+
 # If false, disables processing of header and footer translations for better performance.
 translate-header-footer = true
 
 # If true, a message is pasted in console displaying whether a user joined on an unsupported version.
-# This corresponds with the "minimum-version" and "modern-forwarding-needs-new-client" values.
+# This corresponds with the "minimum-version", "maximum-version", and "modern-forwarding-needs-new-client" values.
 log-minimum-version = false
 
 # Modify the minimum version, so the proxy blocks out users on the wrong version, rather than the backend server.
 # Modern forwarding supports 1.13, at minimum. Set this to 1.13 or above if you are using modern forwarding.
 minimum-version = "1.7.2"
+
+# Modify the maximum version, so the proxy blocks out users on the wrong version, rather than the backend server.
+# Set to "unbounded" for no maximum version (default behavior).
+maximum-version = "unbounded"
 
 # Should the proxy enforce the new public key security standard? By default, this is on.
 force-key-authentication = true
@@ -73,16 +80,20 @@ announce-forge = false
 # If true, disables handling of inbound Forge handshakes.
 disable-forge = false
 
-# If enabled (default is false), Velocity will kick any existing player who is online 
-# if a duplicate connection attempt is made. When kick-existing-players-check-ip is disabled,
-# this feature only works in online mode. When kick-existing-players-check-ip is enabled,
-# this feature works in both online and offline mode.
+# If enabled (default is false), when a new connection arrives with the same UUID as an
+# already-online player, the existing session is kicked and the new connection is allowed in.
+# Works in both online and offline mode. In offline mode the UUID is derived from the username,
+# so enabling this without kick-existing-players-check-ip is unsafe (any client can claim any
+# username/UUID and displace the real player). It is recommended to set kick-existing-players-check-ip
+# to true when enabling kick-existing-players in offline mode.
 kick-existing-players = false
 
-# If enabled (default is false), when kick-existing-players is enabled, Velocity will also
-# check for duplicate connections from the same IP address in addition to username and UUID checks.
-# This provides additional protection against connection loss scenarios and enables 
-# kick-existing-players to work in offline mode.
+# If enabled (default is false), kick-existing-players will only kick the existing session when
+# the new connection originates from the same IP address. A duplicate UUID from a different IP
+# is denied instead of displacing the existing player. This makes kick-existing-players safe for
+# offline mode by restricting it to reconnect-after-drop scenarios.
+# It is recommended to set kick-existing-players-check-ip to true when enabling kick-existing-players
+# in offline mode.
 kick-existing-players-check-ip = false
 
 # Should Velocity pass server list ping requests to a backend server?
@@ -154,8 +165,8 @@ override-server-command-usage = false
 # Configure your servers here. Each key represents the server's name, and the value
 # represents the IP address of the server to connect to.
 lobby = "127.0.0.1:30066"
-factions  = { address = "127.0.0.1:30067", forwarding-mode = "MODERN", minimum-version = "1.13" }
-minigames = { address = "127.0.0.1:30068", forwarding-mode = "LEGACY", minimum-version = "1.7.2" }
+factions  = { address = "127.0.0.1:30067", forwarding-mode = "modern", minimum-version = "1.13" }
+minigames = { address = "127.0.0.1:30068", forwarding-mode = "legacy", minimum-version = "1.7.2", maximum-version = "1.21.10" }
 
 # In what order, we should try servers when a player logs in or is kicked from a server.
 try = [
@@ -165,13 +176,13 @@ try = [
 # Sends you to the first available fallback server, the least populated
 # fallback server, or the most populated fallback server.
 # Available options:
-# - "FIRST_AVAILABLE":    Acts like regular Velocity and sends the player to
-#                         the first available server on the fallbacks list.
-# - "LEAST_POPULATED":    Sends the player to the fallback server
-#                         with the least number of players.
-# - "MOST_POPULATED":     Sends the player to the fallback server
-#                         with the most number of players.
-dynamic-fallbacks-filter = "FIRST_AVAILABLE"
+# - "first_available": Acts like regular Velocity and sends the player to
+#                      the first available server on the fallbacks list.
+# - "least_populated": Sends the player to the fallback server
+#                      with the least number of players.
+# - "most_populated":  Sends the player to the fallback server
+#                      with the most number of players.
+dynamic-fallbacks-filter = "first_available"
 
 # The list of aliases for the "/server" command when the queue system is enabled.
 server-aliases = [
@@ -190,6 +201,10 @@ server-aliases = [
 "minigames.example.com" = [
     "minigames"
 ]
+
+# Whether to use the configured forced hosts as fallback (try) servers,
+# if a player joins through a forced host that's configured.
+forced-host-as-fallback = true
 
 [command-aliases]
 # What commands should have aliases for simpler execution that
@@ -461,7 +476,7 @@ queue-delay = 0.0
 message-delay = 1.0
 
 # How often to ping backend servers to check if they're online.
-backend-ping-interval = 1.0
+backend-ping-interval = 5.0
 
 # The number tries should a user be sent to a server before it removes the user from a queue.
 max-send-retries = 10
@@ -483,6 +498,17 @@ queue-on-shutdown = true
 # If true, players that are sent via the BungeeCord Messaging channels are queued if the server has queueing enabled.
 # If false, they will bypass the queue and be sent directly to the backend.
 override-bungee-messaging = true
+
+[queue.auto-queue-servers]
+# The list of servers that should auto-queue players on join.
+# When a player joins the server on the left, it will enqueue them to the server(s) to the right.
+# If allow-multi-queue is disabled and multiple servers are configured, only the first server will be chosen.
+"minigames-limbo" = [
+    "minigames1",
+    "minigames2"
+]
+
+"factions-limbo" = "factions"
 
 [playercaps]
 # This allows you to define the maximum amount of players that can be on any
@@ -522,27 +548,28 @@ server = [
 # Proxy addresses are specified to ensure that the player
 # can be transferred using the "/transfer" command and
 # does not require Redis to be activated for use.
+# The proxy IP must be reachable by the clients (do not use the internal IP).
 
 # This allows you to specify whether you would like your players
 # to be sent to no fallback proxy, the most empty fallback proxy,
 # the least empty fallback proxy, or the first found fallback proxy.
 # Available options:
-# - "FIRST_FOUND":        Sends the player to the first available
-#                         proxy from the "master-proxy-ids" list.
-# - "MOST_EMPTY":         Sends the player to the fallback proxy
-#                         with the least number of players.
-# - "LEAST_EMPTY":        Sends the player to the fallback proxy
-#                         with the most number of players.
-# - "NONE":               Fully kicks the player from the entirety
-#                         of the network and is not sent anywhere.
-dynamic-proxy-filter = "MOST_EMPTY"
+# - "first_found": Sends the player to the first available
+#                  proxy from the "master-proxy-ids" list.
+# - "most_empty":  Sends the player to the fallback proxy
+#                  with the least number of players.
+# - "least_empty": Sends the player to the fallback proxy
+#                  with the most number of players.
+# - "none":        Fully kicks the player from the entirety
+#                  of the network and is not sent anywhere.
+dynamic-proxy-filter = "most_empty"
 
 [proxy-addresses.Proxy-1]
 proxy-id = "Proxy-1"
-ip = "127.0.0.1"
+ip = "203.0.113.50"
 port = 25565
 
 [proxy-addresses.Proxy-2]
 proxy-id = "Proxy-2"
-ip = "127.0.0.1"
+ip = "203.0.113.60"
 port = 25566

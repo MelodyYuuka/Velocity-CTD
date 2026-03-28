@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -11,11 +11,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import net.kyori.adventure.text.object.PlayerHeadObjectContents;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a Mojang game profile. This class is immutable.
  */
-public final class GameProfile {
+public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
 
   /**
    * The UUID of the profile.
@@ -182,6 +185,22 @@ public final class GameProfile {
     Preconditions.checkNotNull(username, "username");
     return new GameProfile(UuidUtils.generateOfflinePlayerUuid(username), username,
         ImmutableList.of());
+  }
+
+  @SuppressWarnings("UnstableApiUsage") // Permitted unstable implementation
+  @Override
+  public void applySkinToPlayerHeadContents(final PlayerHeadObjectContents.@NotNull Builder builder) {
+    if (this.properties.isEmpty()) {
+      builder.id(this.id);
+      return;
+    }
+
+    builder.id(this.id)
+        .name(this.name)
+        .profileProperties(this.properties.stream()
+            .map(property -> PlayerHeadObjectContents.property(property.getName(),
+                property.getValue(), property.getSignature()))
+            .collect(Collectors.toList()));
   }
 
   @Override

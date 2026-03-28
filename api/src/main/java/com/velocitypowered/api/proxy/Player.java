@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
@@ -39,6 +40,7 @@ import net.kyori.adventure.sound.SoundStop;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.event.HoverEventSource;
+import net.kyori.adventure.text.object.PlayerHeadObjectContents;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,7 +51,8 @@ public interface Player extends
     /* Fundamental Velocity interfaces */
     CommandSource, InboundConnection, ChannelMessageSource, ChannelMessageSink,
     /* Adventure-specific interfaces */
-    Identified, HoverEventSource<HoverEvent.ShowEntity>, Keyed, KeyIdentifiable, Sound.Emitter {
+    Identified, HoverEventSource<HoverEvent.ShowEntity>, Keyed, KeyIdentifiable, Sound.Emitter,
+    PlayerHeadObjectContents.SkinSource {
 
   /**
    * Returns the player's current username.
@@ -87,7 +90,7 @@ public interface Player extends
    *
    * @return an {@link Optional} the server that the player is connected to, which may be empty
    */
-  Optional<ServerConnection> getCurrentServer();
+  Optional<? extends ServerConnection> getCurrentServer();
 
   /**
    * Returns the player's client settings.
@@ -337,6 +340,15 @@ public interface Player extends
     return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(), Component.text(getUsername()))));
   }
 
+  @SuppressWarnings("UnstableApiUsage") // Permitted unstable implementation
+  @Override
+  default void applySkinToPlayerHeadContents(final PlayerHeadObjectContents.@NotNull Builder builder) {
+    builder.skin(this.getGameProfile());
+    if (this.hasSentPlayerSettings()) {
+      builder.hat(this.getPlayerSettings().getSkinParts().hasHat());
+    }
+  }
+
   /**
    * Gets the player's client brand.
    *
@@ -528,4 +540,11 @@ public interface Player extends
    * @return Custom queue priority of player, or 0.
    */
   int getQueuePriority(String server);
+
+  /**
+   * Gets all queue priorities for this player.
+   *
+   * @return A map of server names to their respective queue priorities for this player.
+   */
+  Map<String, Integer> getQueuePriorities();
 }

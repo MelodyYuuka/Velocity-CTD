@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -65,7 +64,7 @@ public class ClientboundCustomReportDetailsPacket implements MinecraftPacket {
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     int detailsCount = ProtocolUtils.readVarInt(buf);
 
-    this.details = new HashMap<>(detailsCount);
+    this.details = ProtocolUtils.newMap(detailsCount);
     for (int i = 0; i < detailsCount; i++) {
       details.put(ProtocolUtils.readString(buf), ProtocolUtils.readString(buf));
     }

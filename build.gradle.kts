@@ -10,6 +10,12 @@ subprojects {
     apply(plugin = "velocity-checkstyle")
     apply(plugin = "velocity-spotless")
 
+    plugins.withId("checkstyle") {
+        extensions.configure<CheckstyleExtension> {
+            configFile = rootProject.file("config/checkstyle/checkstyle.xml")
+        }
+    }
+
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(21))
@@ -17,10 +23,7 @@ subprojects {
     }
 
     dependencies {
-        testImplementation(rootProject.libs.junit.jupiter.api)
-        testRuntimeOnly(rootProject.libs.junit.jupiter.engine)
-        testImplementation(rootProject.libs.junit.platform.launcher)
-        testImplementation(rootProject.libs.junit.platform.engine)
+        testImplementation(rootProject.libs.junit)
     }
 
     testing.suites.named<JvmTestSuite>("test") {
@@ -29,6 +32,14 @@ subprojects {
             testTask.configure {
                 reports.junitXml.required = true
             }
+        }
+    }
+}
+
+project(":velocity-proxy") {
+    plugins.withId("checkstyle") {
+        extensions.configure<CheckstyleExtension> {
+            configFile = rootProject.file("config/checkstyle/checkstyle-lenient-comments.xml")
         }
     }
 }

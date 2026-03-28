@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
     if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
       // Any signed message produced by the client *must* be passed through to the server to maintain a
       // consistent state for future messages.
-      logger.fatal("A plugin tried to deny a command with signable component(s). This is not supported. "
+      LOGGER.fatal("A plugin tried to deny a command with signable component(s). This is not supported. "
           + "Disconnecting player {}. Command packet: {}",
           player.getUsername(), packet);
       player.disconnect(Component.text(
@@ -111,7 +111,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
   @Nullable
   private MinecraftPacket modifyCommand(final SessionPlayerCommandPacket packet, final String newCommand) {
     if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-      logger.fatal("A plugin tried to change a command with signed component(s). "
+      LOGGER.fatal("A plugin tried to change a command with signed component(s). "
           + "This is not supported. "
           + "Disconnecting player {}. Command packet: {}",
           player.getUsername(), packet);

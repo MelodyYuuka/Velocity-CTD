@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -78,6 +78,13 @@ public interface ProxyConfig {
   boolean isOnlineMode();
 
   /**
+   * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+   * 
+   * @return does prevents chat reports
+   */
+  boolean doesPreventChatReports();
+
+  /**
    * If client's ISP/AS sent from this proxy is different from the one from Mojang's
    * authentication server, the player is kicked. This disallows some VPN and proxy
    * connections but is a weak form of protection.
@@ -122,6 +129,15 @@ public interface ProxyConfig {
    * @return mapped list of server names
    */
   Map<String, List<String>> getForcedHosts();
+
+  /**
+   * Whether to use the forced hosts list as the fallback servers, instead of
+   * servers-to-try ({@code getAttemptConnectionOrder}), if a forced host
+   * is configured for the virtual host a player is connected to.
+   *
+   * @return true if {@code getForcedHosts().get(virtualHost)} should be used instead of {@code getAttemptConnectionOrder}.
+   */
+  boolean isForcedHostAsFallback();
 
   /**
    * Whether the proxy should cache Mojang profile results to reduce login API pressure.

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   /**
    * The logger instance used to report events and exceptions on this connection.
    */
-  private static final Logger logger = LogManager.getLogger(MinecraftConnection.class);
+  private static final Logger LOGGER = LogManager.getLogger(MinecraftConnection.class);
 
   /**
    * The maximum size in bytes for an incoming packet from the client before disconnection.
@@ -190,7 +190,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
 
     if (association != null && server.getConfiguration().isLogPlayerConnections()) {
-      logger.info("{} has connected", association);
+      LOGGER.info("{} has connected", association);
     }
   }
 
@@ -214,7 +214,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         || server.getConfiguration().isLogOfflineConnections())) {
 
       if (server.getConfiguration().isLogPlayerDisconnections()) {
-        logger.info("{} has disconnected", association);
+        LOGGER.info("{} has disconnected", association);
       }
     }
   }
@@ -256,7 +256,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         case ByteBuf buf -> {
           if (activeSessionHandler instanceof ClientPlaySessionHandler) {
             if (MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > MAX_CLIENT_PACKET_SIZE) {
-              logger.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), MAX_CLIENT_PACKET_SIZE);
+              LOGGER.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), MAX_CLIENT_PACKET_SIZE);
               Component translated = GlobalTranslator.render(Component.translatable("velocity.kick.oversized-packet"),
                   ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault()));
               closeWith(DisconnectPacket.create(translated, getProtocolVersion(), getState()));
@@ -307,7 +307,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         try {
           activeSessionHandler.exception(cause);
         } catch (Exception ex) {
-          logger.error("{}: exception handling exception in {}",
+          LOGGER.error("{}: exception handling exception in {}",
               (association != null ? association : channel.remoteAddress()), activeSessionHandler, cause);
         }
       }
@@ -316,7 +316,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         if (cause instanceof ReadTimeoutException) {
           if (server.getConfiguration().isLogOfflineConnections()
                   || !(association instanceof InitialInboundConnection)) {
-            logger.error("{}: read timed out", association);
+            LOGGER.error("{}: read timed out", association);
           }
         } else {
           boolean frontlineHandler = activeSessionHandler instanceof InitialLoginSessionHandler
@@ -325,7 +325,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
           boolean isQuietDecoderException = cause instanceof QuietDecoderException;
           boolean willLog = !isQuietDecoderException && !frontlineHandler;
           if (willLog) {
-            logger.atError().withThrowable(cause)
+            LOGGER.atError().withThrowable(cause)
                 .log("{}: exception encountered in {}", association, activeSessionHandler);
           } else {
             knownDisconnect = true;

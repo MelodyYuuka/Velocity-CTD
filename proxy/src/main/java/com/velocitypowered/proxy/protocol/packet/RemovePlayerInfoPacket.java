@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 
 package com.velocitypowered.proxy.protocol.packet;
 
-import com.google.common.collect.Lists;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
@@ -87,7 +86,7 @@ public class RemovePlayerInfoPacket implements MinecraftPacket {
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
     int length = ProtocolUtils.readVarInt(buf);
-    Collection<UUID> profilesToRemove = Lists.newArrayListWithCapacity(length);
+    Collection<UUID> profilesToRemove = ProtocolUtils.newList(length);
     for (int idx = 0; idx < length; idx++) {
       profilesToRemove.add(ProtocolUtils.readUuid(buf));
     }

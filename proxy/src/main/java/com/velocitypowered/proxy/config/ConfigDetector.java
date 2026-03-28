@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ public record ConfigDetector(Logger logger) {
    */
   private static final Set<String> IGNORED_SECTIONS = Set.of("servers", "server-links",
           "forced-hosts", "slash-servers", "playercaps", "proxy-addresses",
-          "command-aliases", "proxy-command-aliases");
+          "command-aliases", "proxy-command-aliases", "auto-queue-servers");
 
   /**
    * Configuration analysis result containing details about outdated configurations.
@@ -200,11 +200,12 @@ public record ConfigDetector(Logger logger) {
       if (!currentConfig.contains(key)) {
         missingOptions.add(fullPath);
       } else {
-        Object defaultValue = entry.getValue();
-        Object currentValue = currentConfig.get(key);
+        Object defaultValueObj = entry.getValue();
+        Object currentValueObj = currentConfig.get(key);
 
-        if (defaultValue instanceof CommentedConfig && currentValue instanceof CommentedConfig) {
-          findMissingOptionsRecursive((CommentedConfig) defaultValue, (CommentedConfig) currentValue, fullPath, missingOptions);
+        if (defaultValueObj instanceof CommentedConfig defaultValue
+            && currentValueObj instanceof CommentedConfig currentValue) {
+          findMissingOptionsRecursive(defaultValue, currentValue, fullPath, missingOptions);
         }
       }
     }
@@ -244,11 +245,12 @@ public record ConfigDetector(Logger logger) {
       if (!defaultConfig.contains(key)) {
         deprecatedOptions.add(fullPath);
       } else {
-        Object defaultValue = defaultConfig.get(key);
-        Object currentValue = entry.getValue();
+        Object defaultValueObj = defaultConfig.get(key);
+        Object currentValueObj = entry.getValue();
 
-        if (defaultValue instanceof CommentedConfig && currentValue instanceof CommentedConfig) {
-          findDeprecatedOptionsRecursive((CommentedConfig) defaultValue, (CommentedConfig) currentValue, fullPath, deprecatedOptions);
+        if (defaultValueObj instanceof CommentedConfig defaultValue
+            && currentValueObj instanceof CommentedConfig currentValue) {
+          findDeprecatedOptionsRecursive(defaultValue, currentValue, fullPath, deprecatedOptions);
         }
       }
     }

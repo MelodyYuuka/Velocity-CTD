@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
   /**
    * Logger used for chat processing diagnostics and error reporting.
    */
-  private static final Logger logger = LogManager.getLogger(SessionChatHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(SessionChatHandler.class);
 
   /**
    * The player associated with this chat session.
@@ -104,7 +104,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               PlayerChatEvent.ChatResult chatResult = pme.getResult();
               if (!chatResult.isAllowed()) {
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-                  invalidCancel(logger, player);
+                  invalidCancel(LOGGER, player);
                 }
 
                 return null;
@@ -113,7 +113,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage()))
                   .orElse(false)) {
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-                  invalidChange(logger, player);
+                  invalidChange(LOGGER, player);
                   return null;
                 }
 
@@ -127,7 +127,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               return packet.withLastSeenMessages(newLastSeenMessages);
             })
             .exceptionally((ex) -> {
-              logger.error("Exception while handling player chat for {}", player, ex);
+              LOGGER.error("Exception while handling player chat for {}", player, ex);
               return null;
             }),
         packet.getTimestamp(),

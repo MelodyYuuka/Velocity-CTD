@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import com.velocitypowered.proxy.command.CommandGraphInjector;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -93,7 +94,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   /**
    * The logger instance for this session handler.
    */
-  private static final Logger logger = LogManager.getLogger(BackendPlaySessionHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(BackendPlaySessionHandler.class);
 
   /**
    * Enables debug logging when backpressure prevents packet flushing.
@@ -339,7 +340,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
           }
 
           if (modifiedPack) {
-            logger.warn("A plugin has tried to modify a ResourcePack provided by the backend server "
+            LOGGER.warn("A plugin has tried to modify a ResourcePack provided by the backend server "
                     + "with a ResourcePack already applied, the applying of the resource pack will be skipped.");
           }
         } else {
@@ -361,7 +362,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
         ));
       }
 
-      logger.error("Exception while handling resource pack send for {}", playerConnection, ex);
+      LOGGER.error("Exception while handling resource pack send for {}", playerConnection, ex);
       return null;
     });
 
@@ -393,7 +394,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
         playerConnection.write(packet);
       }
     }, playerConnection.eventLoop()).exceptionally((ex) -> {
-      logger.error("Exception while handling resource pack remove for {}", playerConnection, ex);
+      LOGGER.error("Exception while handling resource pack remove for {}", playerConnection, ex);
       return null;
     });
 
@@ -452,7 +453,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
         playerConnection.write(copied);
       }
     }, playerConnection.eventLoop()).exceptionally((ex) -> {
-      logger.error("Exception while handling plugin message {}", packet, ex);
+      LOGGER.error("Exception while handling plugin message {}", packet, ex);
       return null;
     });
 
@@ -525,14 +526,14 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
       // In 1.21.6 a confirmation prompt was added when executing a command via `run_command` click
       // action if the command is unknown. To prevent this prompt we have to send the command.
       if (this.playerConnection.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_21_6)) {
-        rootNode.removeChildByName("velocity:callback");
+        rootNode.removeChildByName(ClickCallbackManager.COMMAND_LABEL);
       }
     }
 
     server.getEventManager().fire(new PlayerAvailableCommandsEvent(serverConn.getPlayer(), rootNode))
         .thenAcceptAsync(event -> playerConnection.write(commands), playerConnection.eventLoop())
         .exceptionally((ex) -> {
-          logger.error("Exception while handling available commands for {}", playerConnection, ex);
+          LOGGER.error("Exception while handling available commands for {}", playerConnection, ex);
           return null;
         });
 
@@ -571,7 +572,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   public boolean handle(final TransferPacket packet) {
     final InetSocketAddress originalAddress = packet.address();
     if (originalAddress == null) {
-      logger.error("""
+      LOGGER.error("""
           Unexpected nullable address received in TransferPacket \
           from Backend Server in Play State""");
       return true;
@@ -742,9 +743,9 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
 
     if (BACKPRESSURE_LOG) {
       if (writable) {
-        logger.info("{} is not writable, not auto-reading player connection data", this.serverConn);
+        LOGGER.info("{} is not writable, not auto-reading player connection data", this.serverConn);
       } else {
-        logger.info("{} is writable, will auto-read player connection data", this.serverConn);
+        LOGGER.info("{} is writable, will auto-read player connection data", this.serverConn);
       }
     }
 

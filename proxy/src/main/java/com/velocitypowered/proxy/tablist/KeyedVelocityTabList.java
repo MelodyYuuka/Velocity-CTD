@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +18,11 @@
 package com.velocitypowered.proxy.tablist;
 
 import com.google.common.base.Preconditions;
-import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabListEntry;
 import com.velocitypowered.api.util.GameProfile;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket;
@@ -58,7 +57,7 @@ public class KeyedVelocityTabList implements InternalTabList {
   /**
    * The proxy server instance.
    */
-  protected final ProxyServer proxyServer;
+  protected final VelocityServer proxyServer;
 
   /**
    * The map of tab list entries, keyed by UUID.
@@ -71,7 +70,7 @@ public class KeyedVelocityTabList implements InternalTabList {
    * @param player the connected player this tab list is associated with
    * @param proxyServer the proxy server instance used for player lookup and metadata
    */
-  public KeyedVelocityTabList(final ConnectedPlayer player, final ProxyServer proxyServer) {
+  public KeyedVelocityTabList(final ConnectedPlayer player, final VelocityServer proxyServer) {
     this.player = player;
     this.proxyServer = proxyServer;
     this.connection = player.getConnection();
@@ -80,10 +79,10 @@ public class KeyedVelocityTabList implements InternalTabList {
   /**
    * Returns the player that this tab list belongs to.
    *
-   * @return the associated {@link Player}
+   * @return the associated {@link ConnectedPlayer}
    */
   @Override
-  public Player getPlayer() {
+  public ConnectedPlayer getPlayer() {
     return player;
   }
 
@@ -359,7 +358,7 @@ public class KeyedVelocityTabList implements InternalTabList {
       LegacyPlayerListItemPacket.Item packetItem = LegacyPlayerListItemPacket.Item.from(entry);
 
       IdentifiedKey selectedKey = packetItem.getPlayerKey();
-      Optional<Player> existing = proxyServer.getPlayer(entry.getProfile().getId());
+      Optional<ConnectedPlayer> existing = proxyServer.getPlayer(entry.getProfile().getId());
       if (existing.isPresent()) {
         selectedKey = existing.get().getIdentifiedKey();
       }

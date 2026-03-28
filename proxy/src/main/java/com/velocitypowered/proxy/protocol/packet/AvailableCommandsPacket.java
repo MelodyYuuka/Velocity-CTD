@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +44,9 @@ import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
@@ -175,14 +175,14 @@ public class AvailableCommandsPacket implements MinecraftPacket {
   @Override
   public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     int commands = ProtocolUtils.readVarInt(buf);
-    WireNode[] wireNodes = new WireNode[commands];
+    List<WireNode> wireNodes = ProtocolUtils.newList(commands);
     for (int i = 0; i < commands; i++) {
-      wireNodes[i] = deserializeNode(buf, i, protocolVersion);
+      wireNodes.add(deserializeNode(buf, i, protocolVersion));
     }
 
     // Iterate over the deserialized nodes and attempt to form a graph. We also resolve any cycles
     // that exist.
-    Queue<WireNode> nodeQueue = new ArrayDeque<>(Arrays.asList(wireNodes));
+    Queue<WireNode> nodeQueue = new ArrayDeque<>(wireNodes);
     while (!nodeQueue.isEmpty()) {
       boolean cycling = false;
 
@@ -202,7 +202,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     }
 
     int rootIdx = ProtocolUtils.readVarInt(buf);
-    rootNode = (RootCommandNode<CommandSource>) wireNodes[rootIdx].built;
+    rootNode = (RootCommandNode<CommandSource>) wireNodes.get(rootIdx).built;
   }
 
   /**
@@ -393,17 +393,17 @@ public class AvailableCommandsPacket implements MinecraftPacket {
       this.validated = false;
     }
 
-    void validate(final WireNode[] wireNodes) {
-      // Ensure all children exist. Note that we delay checking if the node has already been built;
+    void validate(final List<WireNode> wireNodes) {
+      // Ensure all children exist. Note that we delay checking if the node has been built yet;
       // that needs to come after this node is built.
       for (int child : children) {
-        if (child < 0 || child >= wireNodes.length) {
+        if (child < 0 || child >= wireNodes.size()) {
           throw new IllegalStateException("Node points to non-existent index " + child);
         }
       }
 
       if (redirectTo != -1) {
-        if (redirectTo < 0 || redirectTo >= wireNodes.length) {
+        if (redirectTo < 0 || redirectTo >= wireNodes.size()) {
           throw new IllegalStateException("Redirect node points to non-existent index "
               + redirectTo);
         }
@@ -412,7 +412,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
       this.validated = true;
     }
 
-    boolean toNode(final WireNode[] wireNodes) {
+    boolean toNode(final List<WireNode> wireNodes) {
       if (!this.validated) {
         this.validate(wireNodes);
       }
@@ -428,7 +428,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
 
           // Add any redirects
           if (redirectTo != -1) {
-            WireNode redirect = wireNodes[redirectTo];
+            WireNode redirect = wireNodes.get(redirectTo);
             if (redirect.built != null) {
               args.redirect(redirect.built);
             } else {
@@ -452,7 +452,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
       }
 
       for (int child : children) {
-        if (wireNodes[child].built == null) {
+        if (wireNodes.get(child).built == null) {
           // The child is not yet deserialized. The node can't be built now.
           return false;
         }
@@ -460,7 +460,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
 
       // Associate children with nodes
       for (int child : children) {
-        CommandNode<CommandSource> childNode = wireNodes[child].built;
+        CommandNode<CommandSource> childNode = wireNodes.get(child).built;
         if (!(childNode instanceof RootCommandNode)) {
           built.addChild(childNode);
         }

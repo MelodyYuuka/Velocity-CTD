@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.velocitypowered.api.proxy.Player;
+import com.velocityctd.proxy.queue.VelocityQueue;
+import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
 import com.velocitypowered.api.proxy.player.PlayerInfo;
@@ -47,9 +48,6 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
-import com.velocitypowered.proxy.queue.QueueManagerRedisImpl;
-import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -145,7 +143,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @return the connected players on this server from this proxy instance
    */
   @Override
-  public Collection<Player> getPlayersConnected() {
+  public Collection<ConnectedPlayer> getPlayersConnected() {
     return ImmutableList.copyOf(players.values());
   }
 
@@ -161,16 +159,8 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    */
   @Override
   public long getTotalPlayerCount() {
-    if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-      int amount = 0;
-
-      for (RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
-        if (info.getServerName() != null && info.getServerName().equalsIgnoreCase(getServerInfo().getName())) {
-          amount++;
-        }
-      }
-
-      return amount;
+    if (this.server != null && this.server.isRedisEnabled()) {
+      return this.server.getRedis().getPlayerService().getPlayerEntriesInServer(getServerInfo().getName()).size();
     } else {
       return getPlayersConnected().size();
     }
@@ -187,20 +177,15 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    */
   @Override
   public List<PlayerInfo> getPlayerInfo() {
-    if (this.server == null || !this.server.getMultiProxyHandler().isRedisEnabled()) {
+    if (this.server == null || !this.server.isRedisEnabled()) {
       List<PlayerInfo> info = new ArrayList<>();
       players.forEach((uuid, player) -> info.add(new PlayerInfo(player.getUsername(), player.getUniqueId())));
       return info;
     }
 
-    List<PlayerInfo> info = new ArrayList<>();
-    for (RemotePlayerInfo i : this.server.getMultiProxyHandler().getAllPlayers()) {
-      if (i.getServerName() != null && i.getServerName().equalsIgnoreCase(getServerInfo().getName())) {
-        info.add(new PlayerInfo(i.getName(), i.getUuid()));
-      }
-    }
-
-    return info;
+    return this.server.getRedis().getPlayerService().getPlayerEntriesInServer(getServerInfo().getName()).stream()
+            .map(entry -> new PlayerInfo(entry.getUsername(), entry.getUniqueId()))
+            .toList();
   }
 
   /**
@@ -398,12 +383,17 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
   }
 
   /**
-   * Gets the queue status from the {@link QueueManagerRedisImpl}
-   * directly, to make it work with the old system automatically.
+   * Gets the queue for this server.
    *
-   * @return The queue status of the server
+   * @return The queue of the server
    */
-  public ServerQueueStatus getQueueStatus() {
-    return this.server.getQueueManager().getQueue(serverInfo.getName());
+  @Override
+  public VelocityQueue getQueue() {
+    final VelocityQueueManager queueManager = requireNonNull(server).getQueueManager();
+    if (queueManager == null) {
+      throw new IllegalStateException("No QueueManager available on the server");
+    }
+
+    return queueManager.getQueue(serverInfo.getName());
   }
 }

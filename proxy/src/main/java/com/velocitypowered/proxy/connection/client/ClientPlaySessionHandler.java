@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -99,11 +99,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * center that joins backend servers with players.
  */
 public class ClientPlaySessionHandler implements MinecraftSessionHandler {
+  private static final boolean BACKPRESSURE_LOG =
+      Boolean.getBoolean("velocity.log-server-backpressure");
 
   /**
    * Logger instance for this session handler.
    */
-  private static final Logger logger = LogManager.getLogger(ClientPlaySessionHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(ClientPlaySessionHandler.class);
 
   /**
    * The player associated with this session.
@@ -445,7 +447,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     MinecraftConnection backendConn = serverConn != null ? serverConn.getConnection() : null;
     if (serverConn != null && backendConn != null) {
       if (backendConn.getState() != StateRegistry.PLAY) {
-        logger.warn("A plugin message was received while the backend server was not "
+        LOGGER.warn("A plugin message was received while the backend server was not "
             + "ready. Channel: {}. Packet discarded.", packet.getChannel());
       } else if (PluginMessageUtil.isRegister(packet)) {
         List<ChannelIdentifier> channels = PluginMessageUtil.getChannels(this.player.getClientsideChannels().size(), packet,
@@ -512,7 +514,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                 }
               }
             }, backendConn.eventLoop()).exceptionally((ex) -> {
-              logger.error("Exception while handling plugin message packet for {}", player, ex);
+              LOGGER.error("Exception while handling plugin message packet for {}", player, ex);
               return null;
             });
           }
@@ -566,7 +568,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         smc.setActiveSessionHandler(StateRegistry.CONFIG);
         smc.setAutoReading(true);
       }, smc.eventLoop()).exceptionally((ex) -> {
-        logger.error("Error forwarding config state acknowledgement to server:", ex);
+        LOGGER.error("Error forwarding config state acknowledgement to server:", ex);
         return null;
       });
     }
@@ -708,6 +710,14 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   @Override
   public void writabilityChanged() {
     boolean writable = player.getConnection().getChannel().isWritable();
+
+    if (BACKPRESSURE_LOG) {
+      if (writable) {
+        LOGGER.info("{} is writable, will auto-read backend connection data", player);
+      } else {
+        LOGGER.info("{} is not writable, not auto-reading backend connection data", player);
+      }
+    }
 
     if (!writable) {
       // We might have packets queued from the server, so flush them now to free up memory. Make
@@ -956,7 +966,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             player.getConnection().write(resp);
           }
         }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-          logger.error("Exception while handling command tab completion for player {} executing {}",
+          LOGGER.error("Exception while handling command tab completion for player {} executing {}",
               player, command, ex);
           return null;
         });
@@ -1022,16 +1032,16 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                   response.getOffers().sort(null);
                   player.getConnection().write(response);
                 } catch (Exception ex) {
-                  logger.error("Unable to provide tab list completions for {} for command '{}'", player.getUsername(), command, ex);
+                  LOGGER.error("Unable to provide tab list completions for {} for command '{}'", player.getUsername(), command, ex);
                 }
               }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-                logger.error("Exception while finishing command tab completion,"
+                LOGGER.error("Exception while finishing command tab completion,"
                         + " with request {} and response {}",
                     request, response, ex);
                 return null;
               });
         }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-          logger.error("Exception while finishing command tab completion,"
+          LOGGER.error("Exception while finishing command tab completion,"
                   + " with request {} and response {}",
               request, response, ex);
           return null;
@@ -1052,7 +1062,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
           }
           player.getConnection().write(response);
         }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-          logger.error(
+          LOGGER.error(
               "Exception while finishing regular tab completion,"
                   + " with request {} and response {}", request, response, ex);
           return null;

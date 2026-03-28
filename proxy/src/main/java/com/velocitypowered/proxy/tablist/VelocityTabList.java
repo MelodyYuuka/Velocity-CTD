@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@ package com.velocitypowered.proxy.tablist;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabListEntry;
 import com.velocitypowered.api.util.GameProfile;
@@ -52,7 +51,7 @@ public class VelocityTabList implements InternalTabList {
   /**
    * Logger used to report unusual tab list activity or inconsistencies.
    */
-  private static final Logger logger = LogManager.getLogger(VelocityConsole.class);
+  private static final Logger LOGGER = LogManager.getLogger(VelocityConsole.class);
 
   /**
    * The connected player that owns this tab list.
@@ -81,12 +80,12 @@ public class VelocityTabList implements InternalTabList {
   }
 
   /**
-   * Returns the {@link Player} instance that owns this tab list.
+   * Returns the {@link ConnectedPlayer} instance that owns this tab list.
    *
    * @return the player associated with this tab list
    */
   @Override
-  public Player getPlayer() {
+  public ConnectedPlayer getPlayer() {
     return player;
   }
 
@@ -377,10 +376,10 @@ public class VelocityTabList implements InternalTabList {
             )
         );
       } else {
-        logger.debug("Received an add player packet for an existing entry; this does nothing.");
+        LOGGER.debug("Received an add player packet for an existing entry; this does nothing.");
       }
     } else if (currentEntry == null) {
-      logger.debug(
+      LOGGER.debug(
           "Received a partial player before an ADD_PLAYER action; profile could not be built. {}",
           entry);
       return;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ public class ComponentHolder {
   /**
    * Logger instance for reporting errors during serialization/deserialization.
    */
-  private static final Logger logger = LogManager.getLogger(ComponentHolder.class);
+  private static final Logger LOGGER = LogManager.getLogger(ComponentHolder.class);
 
   /**
    * The maximum allowed size for JSON strings, used when reading components from buffer.
@@ -140,7 +140,7 @@ public class ComponentHolder {
           json = deserialize(binaryTag).toString();
           component = ProtocolUtils.getJsonChatSerializer(version).deserialize(json);
         } catch (Exception ex) {
-          logger.error("Error converting binary component to JSON component! Binary: {} JSON: {}", binaryTag, json, ex);
+          LOGGER.error("Error converting binary component to JSON component! Binary: {} JSON: {}", binaryTag, json, ex);
           throw ex;
         }
       }
@@ -243,7 +243,7 @@ public class ComponentHolder {
       }
 
       switch (listType.id()) {
-        case 1 -> {
+        case 1 -> { // BinaryTagTypes.BYTE:
           byte[] bytes = new byte[jsonArray.size()];
           for (int i = 0; i < bytes.length; i++) {
             bytes[i] = jsonArray.get(i).getAsNumber().byteValue();
@@ -251,7 +251,7 @@ public class ComponentHolder {
 
           return ByteArrayBinaryTag.byteArrayBinaryTag(bytes);
         }
-        case 3 -> {
+        case 3 -> { // BinaryTagTypes.INT:
           int[] ints = new int[jsonArray.size()];
           for (int i = 0; i < ints.length; i++) {
             ints[i] = jsonArray.get(i).getAsNumber().intValue();
@@ -259,7 +259,7 @@ public class ComponentHolder {
 
           return IntArrayBinaryTag.intArrayBinaryTag(ints);
         }
-        case 4 -> {
+        case 4 -> { // BinaryTagTypes.LONG:
           long[] longs = new long[jsonArray.size()];
           for (int i = 0; i < longs.length; i++) {
             longs[i] = jsonArray.get(i).getAsNumber().longValue();

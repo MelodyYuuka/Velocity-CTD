@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 package com.velocitypowered.proxy.protocol.packet.chat;
 
 import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import io.netty.channel.ChannelFuture;
@@ -26,6 +27,8 @@ import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -33,6 +36,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * piggybacking timestamps.
  */
 public class ChatQueue implements AutoCloseable {
+
+  private static final Logger LOGGER = LogManager.getLogger(ChatQueue.class);
 
   /**
    * Internal lock for coordinating serialized access to the queue.
@@ -74,7 +79,14 @@ public class ChatQueue implements AutoCloseable {
         throw new IllegalStateException("ChatQueue has already been closed");
       }
 
-      MinecraftConnection smc = player.ensureAndGetCurrentServer().ensureConnected();
+      MinecraftConnection smc = player.getCurrentServer()
+          .map(VelocityServerConnection::getConnection)
+          .orElse(null);
+
+      if (smc == null) {
+        return;
+      }
+
       head = head.thenCompose(v -> {
         if (closed) {
           return CompletableFuture.completedFuture(null);

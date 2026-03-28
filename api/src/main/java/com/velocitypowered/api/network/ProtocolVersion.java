@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -297,7 +297,12 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
   /**
    * Minecraft 1.21.11.
    */
-  MINECRAFT_1_21_11(774, "1.21.11");
+  MINECRAFT_1_21_11(774, "1.21.11"),
+
+  /**
+   * Minecraft 26.1.
+   */
+  MINECRAFT_26_1(775, "26.1");
 
   /**
    * Bitmask shift used to encode snapshot protocol versions.

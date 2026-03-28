@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,11 @@ public class Velocity {
   /**
    * The main logger used throughout the Velocity bootstrap lifecycle.
    */
-  private static final Logger logger;
+  private static final Logger LOGGER;
 
   static {
     System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
-    logger = LogManager.getLogger(Velocity.class);
+    LOGGER = LogManager.getLogger(Velocity.class);
 
     // We use BufferedImage for favicons, and on macOS this puts the Java application in the dock.
     // How inconvenient. Force AWT to work with its head chopped off.
@@ -54,6 +54,15 @@ public class Velocity {
     // override this if desired.
     if (!VelocityProperties.hasProperty("io.netty.leakDetection.level")) {
       ResourceLeakDetector.setLevel(Level.DISABLED);
+    }
+
+    // Disable io_uring for lettuce if no option is set.
+    if (System.getProperty("io.lettuce.core.iouring") == null
+            && System.getProperty("io.lettuce.core.epoll") == null) {
+      LOGGER.debug("Disabling io_uring for lettuce.");
+      System.setProperty("io.lettuce.core.iouring", "false");
+    } else {
+      LOGGER.debug("Found lettuce io_uring/epoll flag, not disabling io_uring.");
     }
   }
 
@@ -76,7 +85,7 @@ public class Velocity {
         "Shutdown thread"));
 
     double bootTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) / 1000d;
-    logger.info("Done ({}s)!", new DecimalFormat("#.##").format(bootTime));
+    LOGGER.info("Done ({}s)!", new DecimalFormat("#.##").format(bootTime));
     server.getConsoleCommandSource().start();
 
     // If we don't have a console available (because SimpleTerminalConsole returned), then we still

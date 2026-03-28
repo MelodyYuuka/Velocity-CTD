@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -41,7 +42,7 @@ public final class ProxyOptions {
   /**
    * Logger for reporting command-line parsing or help display issues.
    */
-  private static final Logger logger = LogManager.getLogger(ProxyOptions.class);
+  private static final Logger LOGGER = LogManager.getLogger(ProxyOptions.class);
 
   /**
    * Whether the user requested help using {@code -h} or {@code --help}.
@@ -110,7 +111,7 @@ public final class ProxyOptions {
       try {
         parser.printHelpOn(System.out);
       } catch (final IOException e) {
-        logger.error("Could not print help", e);
+        LOGGER.error("Could not print help", e);
       }
     }
   }
@@ -187,7 +188,7 @@ public final class ProxyOptions {
 
       if (split.length == 4) {
         try {
-          mode = ServerInfoForwardingMode.valueOf(split[3].toUpperCase());
+          mode = ServerInfoForwardingMode.valueOf(split[3].toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
           throw new ValueConversionException("Invalid forwarding mode for server flag with name: " + split[0]);
         }

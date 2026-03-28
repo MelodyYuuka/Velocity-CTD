@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
+import java.util.List;
 
 /**
  * The {@code KnownPacksPacket} class represents a packet that handles the synchronization
@@ -48,9 +49,9 @@ public class KnownPacksPacket implements MinecraftPacket {
   private static final QuietDecoderException TOO_MANY_PACKS = new QuietDecoderException("too many known packs");
 
   /**
-   * The array of known resource packs being synchronized.
+   * The list of known resource packs being synchronized.
    */
-  private KnownPack[] packs;
+  private List<KnownPack> packs;
 
   /**
    * Decodes this known packs packet from the provided {@link ByteBuf}.
@@ -71,10 +72,10 @@ public class KnownPacksPacket implements MinecraftPacket {
       throw TOO_MANY_PACKS;
     }
 
-    final KnownPack[] packs = new KnownPack[packCount];
+    final List<KnownPack> packs = ProtocolUtils.newList(packCount);
 
     for (int i = 0; i < packCount; i++) {
-      packs[i] = KnownPack.read(buf);
+      packs.add(KnownPack.read(buf));
     }
 
     this.packs = packs;
@@ -92,7 +93,7 @@ public class KnownPacksPacket implements MinecraftPacket {
    */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
-    ProtocolUtils.writeVarInt(buf, packs.length);
+    ProtocolUtils.writeVarInt(buf, packs.size());
 
     for (KnownPack pack : packs) {
       pack.write(buf);

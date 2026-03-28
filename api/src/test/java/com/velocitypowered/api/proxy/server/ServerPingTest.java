@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.proxy.server.ServerPing.Players;
 import com.velocitypowered.api.proxy.server.ServerPing.SamplePlayer;
 import com.velocitypowered.api.proxy.server.ServerPing.Version;
+import com.velocitypowered.api.util.ModInfo;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ class ServerPingTest {
   void asBuilderConsistency() {
     ServerPing ping = new ServerPing(new Version(404, "1.13.2"),
         new Players(1, 1, ImmutableList.of(new SamplePlayer(Component.text("tuxed"), UUID.randomUUID()))),
-        Component.text("test"), null);
+        Component.text("test"), null, ModInfo.DEFAULT, true);
     assertEquals(ping, ping.asBuilder().build());
   }
 }

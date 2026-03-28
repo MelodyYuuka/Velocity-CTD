@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,6 +59,13 @@ public enum TranslatableMapper implements BiConsumer<TranslatableComponent, Cons
     final Locale locale = ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault());
     if (GlobalTranslator.translator().canTranslate(translatableComponent.key(), locale)) {
       componentConsumer.accept(GlobalTranslator.render(translatableComponent, locale));
+    } else {
+      String fallback = translatableComponent.fallback();
+      if (fallback == null || fallback.isBlank()) {
+        fallback = translatableComponent.key();
+      }
+
+      componentConsumer.accept(Component.text(fallback));
     }
   }
 }

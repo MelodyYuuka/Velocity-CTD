@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,12 +28,12 @@ import com.google.gson.JsonParser;
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginDescription;
 import com.velocitypowered.api.plugin.meta.PluginDependency;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.config.ProxyConfig;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.natives.util.Natives;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.network.TransportType;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -50,12 +50,12 @@ public enum InformationUtils {
 
   /**
    * Retrieves a {@link JsonArray} containing basic information about all running plugins on the
-   * {@link ProxyServer} instance.
+   * {@link VelocityServer} instance.
    *
    * @param proxy the proxy instance to retrieve from
    * @return {@link JsonArray} containing zero or more {@link JsonObject}
    */
-  public static JsonArray collectPluginInfo(final ProxyServer proxy) {
+  public static JsonArray collectPluginInfo(final VelocityServer proxy) {
     List<PluginContainer> allPlugins = ImmutableList.copyOf(
         proxy.getPluginManager().getPlugins());
     JsonArray plugins = new JsonArray();
@@ -208,12 +208,12 @@ public enum InformationUtils {
 
   /**
    * Creates a {@link JsonObject} containing most relevant information of the
-   * {@link RegisteredServer} for diagnosis.
+   * {@link VelocityRegisteredServer} for diagnosis.
    *
    * @param server the server to evaluate
    * @return {@link JsonObject} containing server and diagnostic info
    */
-  public static JsonObject collectServerInfo(final RegisteredServer server) {
+  public static JsonObject collectServerInfo(final VelocityRegisteredServer server) {
     JsonObject info = new JsonObject();
     info.addProperty("currentPlayers", server.getPlayersConnected().size());
     InetSocketAddress iaddr = server.getServerInfo().getAddress();

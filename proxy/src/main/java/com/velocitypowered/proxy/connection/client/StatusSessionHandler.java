@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
   /**
    * The logger for this class.
    */
-  private static final Logger logger = LogManager.getLogger(StatusSessionHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(StatusSessionHandler.class);
 
   /**
    * Thrown when a status ping is received after the expected request window.
@@ -83,7 +83,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
   @Override
   public void activated() {
     if (server.getConfiguration().isShowPingRequests()) {
-      logger.info("{} is pinging the server with version {}", this.inbound,
+      LOGGER.info("{} is pinging the server with version {}", this.inbound,
           this.connection.getProtocolVersion());
     }
   }
@@ -116,7 +116,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
           }
         }, connection.eventLoop())
         .exceptionally((ex) -> {
-          logger.error("Exception while handling legacy ping {}", packet, ex);
+          LOGGER.error("Exception while handling legacy ping {}", packet, ex);
           return null;
         });
 
@@ -170,7 +170,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
             },
             connection.eventLoop())
         .exceptionally((ex) -> {
-          logger.error("Exception while handling status request {}", packet, ex);
+          LOGGER.error("Exception while handling status request {}", packet, ex);
           return null;
         });
 

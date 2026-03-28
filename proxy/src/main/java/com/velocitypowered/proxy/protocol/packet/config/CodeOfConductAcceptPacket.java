@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,6 +54,11 @@ public final class CodeOfConductAcceptPacket implements MinecraftPacket {
    */
   @Override
   public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  }
+
+  @Override
+  public int decodeExpectedMaxLength(ByteBuf buf, Direction direction, ProtocolVersion version) {
+    return 0;
   }
 
   /**

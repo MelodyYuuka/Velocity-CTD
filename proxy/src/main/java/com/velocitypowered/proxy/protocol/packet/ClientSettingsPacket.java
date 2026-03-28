@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -320,15 +321,16 @@ public class ClientSettingsPacket implements MinecraftPacket {
   @Override
   public String toString() {
     return "ClientSettings{"
-        + "locale='" + locale + '\''
-        + ", viewDistance=" + viewDistance
-        + ", chatVisibility=" + chatVisibility
-        + ", chatColors=" + chatColors + ", skinParts=" + skinParts
-        + ", mainHand=" + mainHand
-        + ", chatFilteringEnabled=" + textFilteringEnabled
-        + ", clientListingAllowed=" + clientListingAllowed
-        + ", particleStatus=" + particleStatus
-        + '}';
+            + "locale='" + locale + '\''
+            + ", viewDistance=" + viewDistance
+            + ", chatVisibility=" + chatVisibility
+            + ", chatColors=" + chatColors
+            + ", skinParts=" + skinParts
+            + ", mainHand=" + mainHand
+            + ", chatFilteringEnabled=" + textFilteringEnabled
+            + ", clientListingAllowed=" + clientListingAllowed
+            + ", particleStatus=" + particleStatus
+            + '}';
   }
 
   /**
@@ -430,14 +432,16 @@ public class ClientSettingsPacket implements MinecraftPacket {
     return handler.handle(this);
   }
 
-  /**
-   * Compares this client settings packet with another for equality.
-   *
-   * <p>Two packets are equal if all setting fields are equivalent.</p>
-   *
-   * @param o the object to compare against
-   * @return {@code true} if equal, {@code false} otherwise
-   */
+  @Override
+  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    return 1 + ByteBufUtil.utf8MaxBytes(16) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
+  }
+
+  @Override
+  public int decodeExpectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    return 1 + 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
+  }
+
   @Override
   public boolean equals(final @Nullable Object o) {
     if (this == o) {
@@ -461,14 +465,6 @@ public class ClientSettingsPacket implements MinecraftPacket {
         && Objects.equals(locale, that.locale);
   }
 
-  /**
-   * Returns a hash code for this client settings packet.
-   *
-   * <p>This is based on all relevant setting fields such as locale, distance,
-   * visibility, filtering, and hand preferences.</p>
-   *
-   * @return the computed hash code
-   */
   @Override
   public int hashCode() {
     return Objects.hash(
