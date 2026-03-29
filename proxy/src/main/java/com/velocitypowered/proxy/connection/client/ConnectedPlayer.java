@@ -47,6 +47,7 @@ import com.velocitypowered.api.event.player.configuration.PlayerEnterConfigurati
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.api.permission.PermissionProvider;
 import com.velocitypowered.api.permission.PermissionFunction;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
@@ -191,6 +192,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    *
    * <p>Always returns {@link Tristate#UNDEFINED} for any permission query.</p>
    */
+  static final PermissionProvider DEFAULT_PERMISSIONS = s -> PermissionFunction.ALWAYS_UNDEFINED;
   protected static final PermissionResolver DEFAULT_PERMISSION_RESOLVER = PermissionResolver.ALWAYS_UNDEFINED;
 
   /**
